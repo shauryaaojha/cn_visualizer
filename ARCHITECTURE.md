@@ -206,43 +206,71 @@ If the UI reads well on these three, it reads well on the other 27.
 
 ---
 
-## 5. Screen anatomy (unchanged from DSA)
+## 5. Screen anatomy — one reading column
 
 ```
 ┌─ Navbar ─────────────────────────────────────────────────────────┐
-├──────────┬──────────────────────────────────────┬───────────────┤
-│ Sidebar  │  TopicHeader + breadcrumb            │  Notes rail   │
-│          │                                      │               │
-│ Build    │           CANVAS                     │  step-by-step │
-│ Faults   │       (the animation)                │  narration    │
-│ Run      │                                      │  ─────────    │
-│          │  [Theory] [Code] pills float here    │  Pseudocode   │
-│          │                                      │  / IOS config │
-├──────────┴──────────────────────────────────────┴───────────────┤
-│ TransportBar:  ⏮ ⏯ ⏭   ━━━●━━━━━━  step 7/24   speed ×1        │
-└──────────────────────────────────────────────────────────────────┘
+├──────────┬───────────────────────────────────────────────────────┤
+│ Sidebar  │  breadcrumb                    ← prev  4/8  next →    │
+│          │  TITLE                                                │
+│ Inputs   ├───────────────────────────────────────────────────────┤
+│ Faults   │                                                       │
+│ Re-run   │                  CANVAS                               │
+│          │              (the animation)                          │
+│          ├───────────────────────────────────────────────────────┤
+│          │  ◀ Prev  [ Play ]  Next ▶  Reset   ×1  7/24  ⟨stats⟩  │
+│          ├───────────────────────────────────────────────────────┤
+│          │  [Teacher's Note] [So far] [Algorithm]                │
+│          │  👨‍🏫 …the sentence for this frame…                     │
+└──────────┴───────────────────────────────────────────────────────┘
 ```
 
-Ported near-verbatim from DSA: `AppShell`, `Navbar`, `ShaderBackground`,
-`TopicHub`, `TopicCard`, `Breadcrumb`, `Icon`, `TransportBar`, `NotesPanel`,
-`PseudocodeModal`, `TheoryButton`, `FitStage`, `VisualizerShell`,
-`VisualizerSessionContext`. These are structure-agnostic — they only ever
-touched *frames*, never arrays. Copy, retheme, done.
+DSA put narration in a right-hand rail and the transport in a fixed footer.
+Both moved, for three reasons: the rail was `hidden lg:flex`, so the entire
+voice of the app disappeared on a laptop; a third column squeezed the canvas;
+and the eye had to triangulate between three corners every step. Now reading
+order is a straight line down — animation, the controls that drive it, then
+the explanation. Steps and pseudocode are tabs rather than permanent panels,
+because on any given frame you want one of the three.
 
-**New in the sidebar: the Faults section.** Checkboxes/toggles that inject a
-`Fault[]` into `engine.run()`:
+Shared chrome: `AppShell`, `Navbar`, `BoardBackground`, `TopicHub`,
+`TopicCard`, `Breadcrumb`, `LeafNav`, `Icon`, `Field`, `FitStage`,
+`LessonShell`, `PlayerControls`, `LessonNote`, `SidebarTabs`. All
+structure-agnostic — they only ever touch *frames*.
+
+**Navigation out of a leaf.** `LeafNav` (prev/next across the unit, skipping
+unbuilt leaves) and `SidebarTabs` (siblings within the category) are both
+derived from `data/curriculum.ts`, so they stay correct as leaves land. Without
+them a visualizer is a dead end whose only exit is the breadcrumb.
+
+**The sidebar is where you set up the experiment.** Every input is real, not a
+preset: sender, receiver and host count for a topology; the message, IPs and
+ports for encapsulation; file size, bandwidth and distance for the delay
+comparison. Engines take them as ordinary params, which is only possible
+because they compute rather than look up — `netEngine` finds paths by BFS, so
+"who talks to whom" stopped being baked into the topology.
+
+**Faults live here too.** Every engine takes a `Fault[]` alongside its params:
 
 ```ts
 type Fault =
-  | { kind: "linkDown"; linkId: string }
-  | { kind: "nodeDown"; nodeId: string }
+  | { kind: "linkDown"; id: string }
+  | { kind: "nodeDown"; id: string }
   | { kind: "packetLoss"; rate: number }
-  | { kind: "congest"; linkId: string }
+  | { kind: "congest"; id: string }
   | { kind: "bitFlip"; index: number };   // U4
 ```
 
 One mechanism, and §68 of `plan.md` (Failure / What-If) is satisfied for the
 entire course.
+
+## 5a. Navigation depth
+
+Landing → unit → leaf. Unit hubs list **every** leaf grouped under its category
+as a heading, rather than category cards you must click through — two clicks to
+any topic instead of three, and a unit's full scope visible in one screen.
+Category pages still exist as routes and the headings link to them; they are
+just no longer a gate.
 
 ---
 
@@ -315,7 +343,7 @@ types/visualization.ts      the shared frame contract
 
 ## 8. Build order
 
-**Phase 0 — Shell.** Scaffold Next + Tailwind with the Signal & Wire tokens.
+**Phase 0 — Shell.** Scaffold Next + Tailwind with the Chalk & Talk tokens.
 Port the chrome listed in §5. `curriculum.ts` for all five units (hubs render,
 unbuilt leaves show `status: "soon"`). Landing + `fundamentals` hub live.
 
@@ -329,8 +357,9 @@ topologies, switching.
 **Phase 3 — `signalEngine`.** `SignalCanvas` + `DelayTimeline`.
 → 12 leaves: performance, transmission-media.
 
-**Phase 4 — Polish.** Theory docs per leaf, IOS config rail, the reel-friendly
-fullscreen/clean mode, responsive pass.
+**Phase 4 — Polish.** Theory docs per leaf, IOS config rail, a jump-to-topic
+command palette (45 topics is past the point where browsing scales), the
+reel-friendly fullscreen/clean mode, responsive pass.
 
 Then, and only then, Unit 2. Do not scaffold a later unit's pages before its
 turn — but leave the *folders* in place, since they define the eventual routes.
