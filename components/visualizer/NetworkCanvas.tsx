@@ -13,32 +13,34 @@
 import { AnimatePresence, motion } from "framer-motion";
 import { FitStage } from "@/components/visualizer/FitStage";
 import { useNetStore } from "@/lib/netStore";
+import { PALETTE } from "@/lib/palette";
 import type { CellState, LinkState, NetPanel, Packet } from "@/types/visualization";
 
 const NODE_STYLE: Record<CellState, string> = {
-  idle: "border-outline-variant bg-surface-container/90 text-on-surface",
-  active: "border-primary bg-primary/10 text-primary shadow-[0_0_18px_rgba(34,211,238,0.5)]",
+  idle: "border-outline bg-surface-container/90 text-on-surface",
+  active: "border-primary bg-primary/15 text-primary shadow-[0_0_18px_rgba(240,210,100,0.55)]",
   visited: "border-primary/45 bg-surface-container/90 text-primary/80",
   new: "border-mint bg-mint/10 text-mint",
   removing: "border-coral bg-coral/10 text-coral",
-  target: "border-amber bg-amber/10 text-amber",
-  found: "border-mint bg-mint/15 text-mint animate-ok-pulse",
-  failed: "border-coral bg-coral/15 text-coral animate-fail-pulse",
+  target: "border-amber bg-amber/15 text-amber",
+  found: "border-mint bg-mint/20 text-mint animate-ok-pulse",
+  failed: "border-coral bg-coral/20 text-coral animate-fail-pulse",
 };
 
 const LINK_STYLE: Record<LinkState, { color: string; width: number; dash?: string; opacity: number; flow?: boolean }> =
   {
-    idle: { color: "#44606a", width: 1.6, opacity: 0.75 },
-    active: { color: "#22D3EE", width: 3, opacity: 1, flow: true },
-    reserved: { color: "#22D3EE", width: 2.2, opacity: 0.55 },
-    congested: { color: "#F5A623", width: 2.6, opacity: 1, dash: "6 3" },
-    down: { color: "#FF5F4A", width: 2, opacity: 0.9, dash: "4 5" },
+    // An idle wire is chalk drawn lightly; an active one is gone over again.
+    idle: { color: PALETTE.wire, width: 1.6, opacity: 0.7 },
+    active: { color: PALETTE.data, width: 3, opacity: 1, flow: true },
+    reserved: { color: PALETTE.data, width: 2.2, opacity: 0.5 },
+    congested: { color: PALETTE.control, width: 2.6, opacity: 1, dash: "6 3" },
+    down: { color: PALETTE.fail, width: 2, opacity: 0.9, dash: "4 5" },
   };
 
 const PACKET_STYLE: Record<Packet["state"], string> = {
-  flying: "border-primary bg-primary text-surface shadow-[0_0_14px_rgba(34,211,238,0.7)]",
+  flying: "border-primary bg-primary text-surface shadow-[0_0_14px_rgba(240,210,100,0.75)]",
   queued: "border-amber bg-amber/20 text-amber",
-  delivered: "border-mint bg-mint text-surface shadow-[0_0_14px_rgba(52,201,138,0.6)]",
+  delivered: "border-mint bg-mint text-surface shadow-[0_0_14px_rgba(185,227,154,0.65)]",
   dropped: "border-coral bg-coral text-surface animate-fail-pulse",
 };
 
@@ -90,13 +92,13 @@ export function NetworkCanvas() {
               initial={{ opacity: 0, y: 8, scale: 0.95 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0 }}
-              className={`flex items-center self-center rounded-full border px-4 py-1.5 font-label-caps text-[11px] tracking-wider backdrop-blur-sm ${
+              className={`flex items-center self-center rounded-full border-[1.5px] border-dashed px-4 py-1.5 font-hand text-[15px] font-bold backdrop-blur-sm ${
                 step.message.tone === "error"
-                  ? "border-coral/60 bg-coral/10 text-coral"
+                  ? "border-coral/70 bg-coral/10 text-coral"
                   : step.message.tone === "ok"
-                    ? "border-mint/60 bg-mint/10 text-mint"
+                    ? "border-mint/70 bg-mint/10 text-mint"
                     : step.message.tone === "warn"
-                      ? "border-amber/60 bg-amber/10 text-amber"
+                      ? "border-amber/70 bg-amber/10 text-amber"
                       : "border-outline-variant bg-surface-container/80 text-on-surface-variant"
               }`}
             >
@@ -131,20 +133,18 @@ function Panel({
     <motion.div
       animate={{ opacity: panel.dim ? 0.28 : 1 }}
       transition={{ duration: 0.35 }}
-      className={`relative rounded-lg border bg-surface-container-low/50 backdrop-blur-sm ${
+      className={`relative rounded-lg border-[1.5px] border-dashed bg-surface-container-low/45 backdrop-blur-sm ${
         panel.dim ? "border-outline-variant/40" : "border-outline-variant"
       }`}
       style={{ width: w, height: h + (compact ? 46 : 56) }}
     >
-      {/* Panel header */}
-      <div className="flex items-baseline justify-between gap-2 border-b border-outline-variant/50 px-2.5 py-1.5">
-        <span
-          className={`font-label-caps ${compact ? "text-[10px]" : "text-label-caps"} text-primary`}
-        >
+      {/* Panel header — the label a teacher writes above each sketch. */}
+      <div className="flex items-baseline justify-between gap-2 border-b-[1.5px] border-dashed border-outline-variant/50 px-2.5 py-1.5">
+        <span className={`font-hand font-bold text-primary ${compact ? "text-[13px]" : "text-[16px]"}`}>
           {panel.label}
         </span>
         {panel.sub && (
-          <span className="truncate font-body-sm text-[9.5px] text-on-surface-variant/55">{panel.sub}</span>
+          <span className="truncate font-body-sm text-[10.5px] text-on-surface-variant/70">{panel.sub}</span>
         )}
       </div>
 
@@ -181,11 +181,11 @@ function Panel({
                 {/* A severed link gets an unmissable X at its midpoint. */}
                 {l.state === "down" && (
                   <g>
-                    <circle cx={mx} cy={my} r={r * 0.5} fill="#131313" opacity={0.9} />
+                    <circle cx={mx} cy={my} r={r * 0.5} fill={PALETTE.board} opacity={0.92} />
                     <path
                       d={`M${mx - r * 0.28},${my - r * 0.28} L${mx + r * 0.28},${my + r * 0.28} M${mx + r * 0.28},${my - r * 0.28} L${mx - r * 0.28},${my + r * 0.28}`}
-                      stroke="#FF5F4A"
-                      strokeWidth={2.2}
+                      stroke={PALETTE.fail}
+                      strokeWidth={2.4}
                       strokeLinecap="round"
                     />
                   </g>
@@ -276,12 +276,12 @@ function Panel({
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0 }}
-              className={`rounded-full border px-2 py-0.5 font-label-caps text-[9px] tracking-wider ${
+              className={`rounded-full border-[1.5px] border-dashed px-2 py-0.5 font-hand text-[11.5px] font-bold ${
                 panel.verdict.tone === "error"
-                  ? "border-coral/60 bg-coral/10 text-coral"
+                  ? "border-coral/70 bg-coral/10 text-coral"
                   : panel.verdict.tone === "ok"
-                    ? "border-mint/60 bg-mint/10 text-mint"
-                    : "border-amber/60 bg-amber/10 text-amber"
+                    ? "border-mint/70 bg-mint/10 text-mint"
+                    : "border-amber/70 bg-amber/10 text-amber"
               }`}
             >
               {panel.verdict.text}

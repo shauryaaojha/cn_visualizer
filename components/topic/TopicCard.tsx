@@ -7,7 +7,7 @@ export interface TopicCardProps {
   icon: string;
   href: string;
   status?: "available" | "soon";
-  /** Small badges — hop counts, link counts, overhead. CN's answer to Big-O chips. */
+  /** Small badges — hop counts, link counts, overhead. */
   stats?: string[];
 }
 
@@ -19,23 +19,23 @@ export function TopicCard({ title, blurb, icon, href, status = "available", stat
     <div
       className={`group glass-panel relative flex h-full flex-col rounded-lg p-md transition-all duration-200 ${
         disabled
-          ? "opacity-50"
-          : "hover:-translate-y-1 hover:border-primary/60 hover:shadow-[0_8px_30px_rgba(34,211,238,0.14)]"
+          ? "opacity-45"
+          : "hover:-translate-y-1 hover:border-primary/70 hover:shadow-[0_8px_28px_rgba(240,210,100,0.13)]"
       }`}
     >
       <div className="mb-md flex items-start justify-between">
         <span
-          className={`flex h-11 w-11 items-center justify-center rounded-lg border ${
+          className={`flex h-11 w-11 items-center justify-center rounded-lg border-[1.5px] border-dashed ${
             disabled
               ? "border-outline-variant text-on-surface-variant"
-              : "border-primary/40 bg-primary/10 text-primary group-hover:bg-primary/20"
+              : "border-primary/50 bg-primary/10 text-primary group-hover:bg-primary/20"
           }`}
         >
           <Icon name={icon} className="text-[22px]" />
         </span>
         {disabled ? (
-          <span className="rounded-sm border border-outline-variant bg-surface-container-high px-2 py-0.5 font-label-caps text-[9px] text-on-surface-variant">
-            SOON
+          <span className="rounded-sm border-[1.5px] border-dashed border-outline-variant px-2 py-0.5 font-label-caps text-[9px] uppercase text-on-surface-variant">
+            Soon
           </span>
         ) : (
           <Icon
@@ -46,15 +46,15 @@ export function TopicCard({ title, blurb, icon, href, status = "available", stat
       </div>
 
       <h3 className="mb-1 font-headline-sm text-headline-sm text-on-surface">{title}</h3>
-      <p className="flex-1 font-body-sm text-body-sm leading-relaxed text-on-surface-variant/80">{blurb}</p>
+      <p className="flex-1 font-body-sm text-body-sm leading-relaxed text-on-surface-variant">{blurb}</p>
 
       {stats && stats.length > 0 && (
         <div className="mt-md flex flex-wrap items-center gap-2">
           {stats.map((s, i) => (
             <span
               key={s}
-              className={`border px-2 py-0.5 font-code-snippet text-[11px] ${
-                i === 0 ? "border-primary/40 bg-primary/10 text-primary" : "border-amber/40 bg-amber/10 text-amber"
+              className={`rounded-sm border-[1.5px] border-dashed px-2 py-0.5 font-code-snippet text-[11px] ${
+                i === 0 ? "border-primary/50 bg-primary/10 text-primary" : "border-note/50 bg-note/10 text-note"
               }`}
             >
               {s}

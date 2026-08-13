@@ -2,7 +2,7 @@
 
 import { useState, type ReactNode } from "react";
 import { Navbar } from "@/components/layout/Navbar";
-import { ShaderBackground } from "@/components/layout/ShaderBackground";
+import { BoardBackground } from "@/components/layout/BoardBackground";
 import { Icon } from "@/components/ui/Icon";
 
 interface AppShellProps {
@@ -19,7 +19,7 @@ export function AppShell({ children, sidebar, footer }: AppShellProps) {
 
   return (
     <div className="flex h-[100dvh] flex-col overflow-hidden">
-      <ShaderBackground />
+      <BoardBackground />
       <Navbar />
 
       <div className="mt-16 flex h-[calc(100dvh-120px)] w-full flex-1 overflow-hidden">
@@ -36,7 +36,7 @@ export function AppShell({ children, sidebar, footer }: AppShellProps) {
           onClick={() => setRailOpen((v) => !v)}
           title={railOpen ? "Hide controls" : "Show controls"}
           aria-label={railOpen ? "Hide controls" : "Show controls"}
-          className="z-40 hidden w-4 shrink-0 items-center justify-center border-r border-outline-variant bg-surface-container-low/60 text-on-surface-variant/60 backdrop-blur-sm transition-colors hover:bg-surface-container hover:text-primary md:flex"
+          className="z-40 hidden w-4 shrink-0 items-center justify-center border-r-[1.5px] border-dashed border-outline-variant bg-surface-container-low/50 text-on-surface-variant/60 backdrop-blur-sm transition-colors hover:bg-surface-container hover:text-primary md:flex"
         >
           <Icon name={railOpen ? "chevron_left" : "chevron_right"} className="text-[16px]" />
         </button>
@@ -57,7 +57,7 @@ export function AppShell({ children, sidebar, footer }: AppShellProps) {
       <button
         onClick={() => setDrawerOpen((v) => !v)}
         aria-label="Toggle controls"
-        className="fixed bottom-[4.5rem] right-4 z-[60] flex h-12 w-12 items-center justify-center rounded-full border border-primary-container bg-primary-container text-surface shadow-lg transition-transform active:scale-95 md:hidden"
+        className="fixed bottom-[4.5rem] right-4 z-[60] flex h-12 w-12 items-center justify-center rounded-full border-[1.5px] border-primary bg-primary text-surface shadow-lg transition-transform active:scale-95 md:hidden"
       >
         <Icon name={drawerOpen ? "close" : "tune"} className="text-[22px]" />
       </button>

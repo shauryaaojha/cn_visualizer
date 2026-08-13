@@ -14,7 +14,7 @@ interface PseudocodeBlockProps {
 export function PseudocodeBlock({
   pseudocode,
   activeLines,
-  fontSize = 13,
+  fontSize = 12,
   autoScroll = true,
   className = "",
 }: PseudocodeBlockProps) {
@@ -26,12 +26,11 @@ export function PseudocodeBlock({
     activeRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
   }, [firstLit, autoScroll]);
 
-  // Gutter scales with the line count so a 3-digit program does not clip.
   const gutterCh = String(pseudocode.length).length + 1;
 
   return (
     <pre
-      className={`scroll-thin overflow-x-auto rounded bg-surface-container-lowest p-2 font-code-snippet leading-relaxed ${className}`}
+      className={`scroll-thin overflow-x-auto rounded-md border-[1.5px] border-dashed border-outline-variant bg-black/20 p-2 font-code-snippet leading-relaxed ${className}`}
       style={{ fontSize }}
     >
       {pseudocode.map((line, i) => {
@@ -40,7 +39,8 @@ export function PseudocodeBlock({
           <div
             key={i}
             ref={i + 1 === firstLit ? activeRef : undefined}
-            className={`-mx-2 px-2 ${lit ? "bg-primary/15 text-primary" : "text-on-surface-variant/70"}`}
+            // A lit line is chalk pressed harder, not a highlighter swipe.
+            className={`-mx-2 px-2 ${lit ? "bg-primary/[0.18] font-bold text-primary" : "text-on-surface-variant/75"}`}
           >
             <span
               className="mr-2 inline-block select-none text-right text-on-surface-variant/30"

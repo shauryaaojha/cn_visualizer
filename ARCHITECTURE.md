@@ -246,23 +246,44 @@ entire course.
 
 ---
 
-## 6. Design system — "Signal & Wire"
+## 6. Design system — "Chalk & Talk"
 
-Same dark Material-3 token set as Ember & Coral (surfaces `#131313` /
-`#1c1b1b` / `#201f1f`, JetBrains Mono everywhere, Material Symbols icons, the
-low-opacity WebGL orb background) so all ported chrome works untouched — but a
-**new accent trio**, chosen for what networking actually needs to color-code:
+A green board, chalk, and a teacher who talks you through it. Adapted from
+`vis.html`, whose visual language was the better idea: it has a personality,
+where a dark-terminal palette is what every dev tool already looks like.
 
 | Token | Hex | Means |
 | --- | --- | --- |
-| `signal` (primary) | `#22D3EE` cyan | data / payload / the packet you're following |
-| `amber` | `#F5A623` | control & decision — ACK-pending, routing choice, token |
-| `mint` | `#34C98A` | success — delivered, converged, checksum OK |
-| `coral` | `#FF5F4A` | failure — collision, drop, link down, bit error |
+| `signal` (primary) | `#F0D264` chalk yellow | data / payload / the packet you're following |
+| `amber` | `#F0A868` chalk orange | control & decision — ACK-pending, routing choice, token |
+| `mint` | `#B9E39A` chalk green | success — delivered, converged, checksum OK |
+| `coral` | `#E39AA6` chalk pink | failure — collision, drop, link down, bit error |
+| `note` | `#8FCBE0` chalk blue | the teacher's voice — annotations, asides |
 
-Coral demoting from *primary* to *the failure color* is what makes CN look
-like a sibling of DSA rather than a reskin — and it means a broken network is
-legible at a glance. Shader orbs get retuned cyan/violet/mint to match.
+Board surfaces run `#16342A` → `#2C5A47`; chalk white is `#F3F1E7`.
+
+Three rules make it read as a lesson rather than a dashboard:
+
+1. **Two typefaces, one meaning each.** Kalam (handwriting) for anything a
+   *person* says — headings, prose, buttons, panel labels, verdicts. JetBrains
+   Mono for anything the *network* says — addresses, bits, byte counts, tables,
+   timings, code. Never mix the roles.
+2. **Chalk doesn't draw crisp rectangles.** Panel, card and control edges are
+   `1.5px dashed`. Node circles stay solid — dashes on a 24px circle read as
+   noise, not texture.
+3. **The board is still.** `BoardBackground` is static CSS plus one SVG
+   turbulence filter (eraser smudges, chalk grain, vignette). The Signal & Wire
+   WebGL orb field was replaced outright — a real board does not drift or glow.
+
+Raw hexes for SVG strokes, gradients and canvas fills live in
+[`lib/palette.ts`](lib/palette.ts), so a theme swap is that file plus
+`tailwind.config.ts` and nothing else. Component code only ever names semantic
+tokens, which is why the whole retheme touched no engine and no frame type.
+
+> The `main` branch carries the alternate **Signal & Wire** theme (cyan
+> primary on `#131313` neutrals, WebGL orb background). Both themes share
+> identical token *names* and roles, so the two branches differ only in
+> pigment, type and texture.
 
 ---
 

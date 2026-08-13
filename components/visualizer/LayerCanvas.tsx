@@ -12,6 +12,7 @@
 import { AnimatePresence, motion } from "framer-motion";
 import { FitStage } from "@/components/visualizer/FitStage";
 import { useLayerStore } from "@/lib/layerStore";
+import { PALETTE } from "@/lib/palette";
 import type { HeaderTone, LayerLane, PduHeader } from "@/types/visualization";
 
 const ROW_H = 44;
@@ -28,9 +29,9 @@ const TONE_CHIP: Record<HeaderTone, string> = {
 };
 
 const LANE_STYLE: Record<LayerLane["state"], string> = {
-  idle: "border-outline-variant/60 bg-surface-container/40 text-on-surface-variant/60",
-  active: "border-primary bg-primary/10 text-primary shadow-[0_0_16px_rgba(34,211,238,0.18)]",
-  done: "border-outline-variant bg-surface-container/70 text-on-surface-variant/85",
+  idle: "border-outline-variant/50 bg-surface-container/30 text-on-surface-variant/55",
+  active: "border-primary bg-primary/12 text-primary shadow-[0_0_16px_rgba(240,210,100,0.2)]",
+  done: "border-outline-variant bg-surface-container/60 text-on-surface-variant/85",
 };
 
 export function LayerCanvas() {
@@ -92,13 +93,15 @@ export function LayerCanvas() {
           >
             <div style={{ width: STACK_W / 2 }} />
             <div
-              className={`h-[3px] flex-1 rounded-full transition-colors duration-500 ${
-                onWire ? "wire-flow bg-primary/70" : "bg-outline-variant"
-              }`}
+              className="h-[3px] flex-1 rounded-full transition-all duration-500"
               style={
                 onWire
-                  ? { backgroundImage: "linear-gradient(90deg,#22D3EE 0 60%,transparent 60% 100%)", backgroundSize: "14px 3px" }
-                  : undefined
+                  ? {
+                      backgroundImage: `linear-gradient(90deg, ${PALETTE.data} 0 60%, transparent 60% 100%)`,
+                      backgroundSize: "14px 3px",
+                      boxShadow: `0 0 10px ${PALETTE.data}88`,
+                    }
+                  : { background: PALETTE.wire, opacity: 0.5 }
               }
             />
             <div style={{ width: STACK_W / 2 }} />
@@ -116,8 +119,8 @@ export function LayerCanvas() {
             style={{ width: MID_W, height: ROW_H }}
           >
             {onWire && bits ? (
-              <div className="flex max-w-full items-center gap-2 overflow-hidden rounded border border-primary/50 bg-surface-container-lowest px-3 py-1.5">
-                <span className="shrink-0 font-label-caps text-[9px] text-primary/70">BITS</span>
+              <div className="flex max-w-full items-center gap-2 overflow-hidden rounded-md border-[1.5px] border-dashed border-primary/60 bg-black/25 px-3 py-1.5">
+                <span className="shrink-0 font-label-caps text-[9px] uppercase text-primary/70">Bits</span>
                 <span className="truncate font-mono text-[11px] tracking-tight text-primary">{bits}</span>
               </div>
             ) : (
@@ -166,13 +169,13 @@ export function LayerCanvas() {
               initial={{ opacity: 0, y: 8, scale: 0.95 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0 }}
-              className={`rounded-full border px-4 py-1.5 font-label-caps text-[11px] tracking-wider ${
+              className={`rounded-full border-[1.5px] border-dashed px-4 py-1.5 font-hand text-[15px] font-bold ${
                 step.message.tone === "error"
-                  ? "border-coral/60 bg-coral/10 text-coral"
+                  ? "border-coral/70 bg-coral/10 text-coral"
                   : step.message.tone === "ok"
-                    ? "border-mint/60 bg-mint/10 text-mint"
+                    ? "border-mint/70 bg-mint/10 text-mint"
                     : step.message.tone === "warn"
-                      ? "border-amber/60 bg-amber/10 text-amber"
+                      ? "border-amber/70 bg-amber/10 text-amber"
                       : "border-outline-variant bg-surface-container/80 text-on-surface-variant"
               }`}
             >
@@ -225,15 +228,15 @@ function LaneBox({
   return (
     <div className="px-1 py-[3px]" style={{ width }}>
       <div
-        className={`flex h-full items-center gap-2 rounded border px-2 transition-all duration-300 ${LANE_STYLE[state]} ${
+        className={`flex h-full items-center gap-2 rounded-md border-[1.5px] border-dashed px-2 transition-all duration-300 ${LANE_STYLE[state]} ${
           align === "right" ? "flex-row-reverse text-right" : ""
         }`}
       >
-        <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-sm border border-current/40 font-mono text-[11px] font-bold">
+        <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-sm border-[1.5px] border-current/50 font-mono text-[11px] font-bold">
           {lane.n}
         </span>
         <div className="min-w-0 flex-1">
-          <p className="truncate font-label-caps text-[10px] leading-tight">{lane.name}</p>
+          <p className="truncate font-hand text-[13px] font-bold leading-tight">{lane.name}</p>
           <p className="truncate font-mono text-[9px] leading-tight opacity-60">{lane.pduName}</p>
         </div>
       </div>

@@ -5,24 +5,27 @@
 // The two bar charts share one linear scale on purpose. When the file is small
 // the fibre bar is a sliver next to the satellite's — that sliver IS the
 // lesson. Switch to 100 MB and the two bars become almost the same length,
-// which is the same lesson read backwards. Cyan is the share of time bandwidth
-// controls, violet the share distance controls; watching which one dominates
-// is the whole topic.
+// which is the same lesson read backwards. Chalk yellow is the share of time
+// bandwidth controls, violet the share distance controls; watching which one
+// dominates is the whole topic.
 
 import { AnimatePresence, motion } from "framer-motion";
 import { FitStage } from "@/components/visualizer/FitStage";
 import { fmtBits, fmtMs } from "@/engines/signalEngine";
+import { PALETTE } from "@/lib/palette";
 import { useSignalStore } from "@/lib/signalStore";
 import type { DelayKind, DelaySeg, SignalTrack } from "@/types/visualization";
 
 const PIPE_W = 430;
 const TRACK_W = 640;
 
+// The headline contrast is transmission (chalk yellow) against propagation
+// (chalk violet) — literally bandwidth's share of the time against distance's.
 const DELAY_COLOR: Record<DelayKind, string> = {
-  queuing: "#F5A623",
-  processing: "#34C98A",
-  transmission: "#22D3EE",
-  propagation: "#A78BFA",
+  queuing: PALETTE.control,
+  processing: PALETTE.ok,
+  transmission: PALETTE.data,
+  propagation: PALETTE.protocol,
 };
 
 const DELAY_LABEL: Record<DelayKind, string> = {
@@ -33,11 +36,11 @@ const DELAY_LABEL: Record<DelayKind, string> = {
 };
 
 const TONE_HEX: Record<SignalTrack["tone"], string> = {
-  signal: "#22D3EE",
-  amber: "#F5A623",
-  mint: "#34C98A",
-  violet: "#A78BFA",
-  coral: "#FF5F4A",
+  signal: PALETTE.data,
+  amber: PALETTE.control,
+  mint: PALETTE.ok,
+  violet: PALETTE.protocol,
+  coral: PALETTE.fail,
 };
 
 export function SignalCanvas() {
@@ -48,8 +51,8 @@ export function SignalCanvas() {
     <FitStage>
       <div className="flex flex-col items-center gap-4" style={{ width: TRACK_W }}>
         {/* Shared virtual clock */}
-        <div className="flex items-baseline gap-2 rounded-full border border-outline-variant bg-surface-container-low/70 px-4 py-1">
-          <span className="font-label-caps text-[9px] tracking-widest text-on-surface-variant/50">CLOCK</span>
+        <div className="flex items-baseline gap-2 rounded-full border-[1.5px] border-dashed border-outline-variant bg-surface-container-low/70 px-4 py-1">
+          <span className="font-label-caps text-[9px] uppercase tracking-widest text-on-surface-variant/60">Clock</span>
           <span className="font-mono text-[15px] font-bold text-primary">{fmtMs(step.clockMs)}</span>
         </div>
 
@@ -62,14 +65,14 @@ export function SignalCanvas() {
 
         {/* Delay breakdown */}
         {step.chart && (
-          <div className="w-full rounded-lg border border-outline-variant bg-surface-container-low/60 p-3 backdrop-blur-sm">
+          <div className="w-full rounded-lg border-[1.5px] border-dashed border-outline-variant bg-surface-container-low/50 p-3 backdrop-blur-sm">
             <div className="mb-2 flex items-center justify-between">
-              <span className="font-label-caps text-[10px] uppercase tracking-wider text-on-surface-variant/70">
+              <span className="font-hand text-[15px] font-bold text-on-surface">
                 {step.chart.title}
               </span>
               <div className="flex flex-wrap items-center gap-2.5">
                 {(Object.keys(DELAY_COLOR) as DelayKind[]).map((k) => (
-                  <span key={k} className="flex items-center gap-1 font-mono text-[9px] text-on-surface-variant/60">
+                  <span key={k} className="flex items-center gap-1 font-mono text-[9px] text-on-surface-variant/70">
                     <span className="h-2 w-2 rounded-[2px]" style={{ background: DELAY_COLOR[k] }} />
                     {k}
                   </span>
@@ -82,7 +85,7 @@ export function SignalCanvas() {
                   <span className="w-16 shrink-0 text-right font-mono text-[11px] text-on-surface-variant/70">
                     {r.label}
                   </span>
-                  <div className="relative h-5 flex-1 overflow-hidden rounded-sm bg-surface-container-lowest">
+                  <div className="relative h-5 flex-1 overflow-hidden rounded-sm border border-outline-variant/50 bg-black/25">
                     <div className="flex h-full">
                       {r.segs.map((sg, i) => (
                         <motion.div
@@ -113,12 +116,12 @@ export function SignalCanvas() {
               initial={{ opacity: 0, y: 8, scale: 0.95 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0 }}
-              className={`rounded-full border px-4 py-1.5 font-label-caps text-[11px] tracking-wider ${
+              className={`rounded-full border-[1.5px] border-dashed px-4 py-1.5 font-hand text-[15px] font-bold ${
                 step.message.tone === "error"
-                  ? "border-coral/60 bg-coral/10 text-coral"
+                  ? "border-coral/70 bg-coral/10 text-coral"
                   : step.message.tone === "ok"
-                    ? "border-mint/60 bg-mint/10 text-mint"
-                    : "border-amber/60 bg-amber/10 text-amber"
+                    ? "border-mint/70 bg-mint/10 text-mint"
+                    : "border-amber/70 bg-amber/10 text-amber"
               }`}
             >
               {step.message.text}
@@ -142,13 +145,13 @@ function Pipe({ t }: { t: SignalTrack }) {
   const done = t.finishedMs !== undefined;
 
   return (
-    <div className="w-full rounded-lg border border-outline-variant bg-surface-container-low/40 p-2.5">
+    <div className="w-full rounded-lg border-[1.5px] border-dashed border-outline-variant bg-surface-container-low/35 p-2.5">
       <div className="mb-1.5 flex items-baseline justify-between gap-2">
         <span className="flex items-baseline gap-2">
-          <span className="font-label-caps text-label-caps" style={{ color: hex }}>
+          <span className="font-hand text-[16px] font-bold" style={{ color: hex }}>
             {t.label}
           </span>
-          <span className="font-body-sm text-[10px] text-on-surface-variant/55">{t.sub}</span>
+          <span className="font-mono text-[10px] text-on-surface-variant/65">{t.sub}</span>
         </span>
         <span
           className={`font-mono text-[11px] font-bold ${done ? "text-mint" : "text-on-surface-variant/70"}`}
@@ -162,7 +165,7 @@ function Pipe({ t }: { t: SignalTrack }) {
 
         <div
           className="relative flex-1 overflow-hidden rounded-md border"
-          style={{ height: pipeH, width: PIPE_W, borderColor: `${hex}55`, background: "#0e0e0e" }}
+          style={{ height: pipeH, width: PIPE_W, borderColor: `${hex}66`, background: "rgba(0,0,0,0.28)", borderStyle: "dashed", borderWidth: 1.5 }}
         >
           {/* The bit stream, between its trailing and leading edge. */}
           <motion.div
@@ -177,8 +180,8 @@ function Pipe({ t }: { t: SignalTrack }) {
           />
           {done && (
             <div className="absolute inset-0 flex items-center justify-center">
-              <span className="rounded-full bg-mint/20 px-2 py-0.5 font-label-caps text-[9px] text-mint">
-                ALL BITS ARRIVED
+              <span className="rounded-full bg-mint/20 px-2 py-0.5 font-hand text-[12px] font-bold text-mint">
+                all bits arrived
               </span>
             </div>
           )}
@@ -187,7 +190,7 @@ function Pipe({ t }: { t: SignalTrack }) {
         <Meter label="RX" pct={gotPct} hex="#34C98A" />
       </div>
 
-      <div className="mt-1 flex justify-between font-mono text-[9.5px] text-on-surface-variant/45">
+      <div className="mt-1 flex justify-between font-mono text-[9.5px] text-on-surface-variant/55">
         <span>sent {fmtBits(t.sentBits)}</span>
         <span>{t.bandwidthMbps} Mbps · {t.propagationMs} ms of flight time</span>
         <span>received {fmtBits(t.deliveredBits)}</span>
@@ -199,7 +202,7 @@ function Pipe({ t }: { t: SignalTrack }) {
 function Meter({ label, pct, hex }: { label: string; pct: number; hex: string }) {
   return (
     <div className="flex w-8 shrink-0 flex-col items-center gap-0.5">
-      <div className="relative h-8 w-4 overflow-hidden rounded-sm border border-outline-variant bg-surface-container-lowest">
+      <div className="relative h-8 w-4 overflow-hidden rounded-sm border border-outline-variant bg-black/30">
         <motion.div
           initial={false}
           animate={{ height: `${pct}%` }}
@@ -208,7 +211,7 @@ function Meter({ label, pct, hex }: { label: string; pct: number; hex: string })
           style={{ background: hex }}
         />
       </div>
-      <span className="font-label-caps text-[8px] text-on-surface-variant/50">{label}</span>
+      <span className="font-label-caps text-[8px] uppercase text-on-surface-variant/60">{label}</span>
     </div>
   );
 }

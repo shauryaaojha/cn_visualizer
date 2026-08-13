@@ -28,19 +28,19 @@ export function NetworkSidebar() {
   };
 
   return (
-    <aside className="scroll-thin z-40 flex h-full w-72 shrink-0 flex-col overflow-y-auto border-r border-outline-variant bg-surface-container-low/95 backdrop-blur-xl md:bg-surface-container-low/80">
+    <aside className="scroll-thin z-40 flex h-full w-72 shrink-0 flex-col overflow-y-auto border-r-[1.5px] border-dashed border-outline-variant bg-surface-container-low/95 backdrop-blur-xl md:bg-surface-container-low/80">
       <div className="flex flex-1 flex-col gap-md p-md">
-        <div className="flex items-center gap-2 border-b border-outline-variant pb-md">
+        <div className="flex items-center gap-2 border-b-[1.5px] border-dashed border-outline-variant pb-md">
           <Icon name="hub" className="text-[16px] text-primary" />
-          <h2 className="font-label-caps text-label-caps text-primary">Topology</h2>
+          <h2 className="font-hand text-[17px] font-bold text-primary">Topology</h2>
         </div>
 
-        <p className="font-body-sm text-[11px] leading-relaxed text-on-surface-variant/70">
+        <p className="font-body-sm text-body-sm leading-relaxed text-on-surface-variant">
           The same six hosts A–F in every layout, so what changes between them is only the wiring.
         </p>
 
         <div>
-          <label className="mb-1.5 block font-label-caps text-[10px] text-on-surface-variant">LAYOUT</label>
+          <label className="mb-1.5 block font-label-caps text-[9px] uppercase tracking-[0.08em] text-on-surface-variant/70">LAYOUT</label>
           <div className="grid grid-cols-3 gap-1">
             {NET_OPERATIONS.map((t) => {
               const selected = t.id === params.op;
@@ -49,9 +49,9 @@ export function NetworkSidebar() {
                   key={t.id}
                   onClick={() => router.push(`/topics/fundamentals/${t.subpath}`)}
                   title={t.label}
-                  className={`flex flex-col items-center gap-0.5 border px-1 py-1.5 transition-colors ${
+                  className={`flex flex-col items-center gap-0.5 rounded-md border-[1.5px] border-dashed px-1 py-1.5 transition-colors ${
                     selected
-                      ? "border-primary bg-primary/10 text-primary"
+                      ? "border-[1.5px] border-primary bg-primary/12 text-primary"
                       : "border-outline-variant text-on-surface-variant hover:border-primary/60 hover:text-on-surface"
                   }`}
                 >
@@ -65,11 +65,11 @@ export function NetworkSidebar() {
 
         {/* Faults — break the network on purpose */}
         <div>
-          <label className="mb-1.5 flex items-center gap-1.5 font-label-caps text-[10px] text-coral">
+          <label className="mb-1.5 flex items-center gap-1.5 font-label-caps text-[9px] uppercase tracking-[0.08em] text-coral">
             <Icon name="warning" className="text-[13px]" /> FAULTS
           </label>
           {options.length === 0 ? (
-            <p className="font-body-sm text-[11px] leading-relaxed text-on-surface-variant/60">
+            <p className="font-body-sm text-body-sm leading-relaxed text-on-surface-variant/75">
               This comparison already cuts one link in every topology — that is the whole experiment. Open a single
               layout to choose the fault yourself.
             </p>
@@ -81,9 +81,9 @@ export function NetworkSidebar() {
                   <button
                     key={o.id}
                     onClick={() => toggle(o.fault)}
-                    className={`flex items-start gap-2 border px-2 py-2 text-left transition-colors ${
+                    className={`flex items-start gap-2 rounded-md border-[1.5px] border-dashed px-2 py-2 text-left transition-colors ${
                       on
-                        ? "border-coral bg-coral/10 text-coral"
+                        ? "border-[1.5px] border-coral bg-coral/12 text-coral"
                         : "border-outline-variant text-on-surface-variant hover:border-coral/60"
                     }`}
                   >
@@ -92,8 +92,8 @@ export function NetworkSidebar() {
                       className="mt-px shrink-0 text-[15px]"
                     />
                     <span className="min-w-0">
-                      <span className="block font-label-caps text-[10px] leading-tight">{o.label}</span>
-                      <span className="mt-0.5 block font-body-sm text-[10px] leading-snug opacity-70">{o.hint}</span>
+                      <span className="block font-hand text-[13.5px] font-bold leading-tight">{o.label}</span>
+                      <span className="mt-0.5 block font-body-sm text-[12px] leading-snug opacity-75">{o.hint}</span>
                     </span>
                   </button>
                 );
@@ -104,7 +104,7 @@ export function NetworkSidebar() {
 
         <button
           onClick={() => run()}
-          className="mt-auto flex w-full items-center justify-center gap-2 bg-primary-container py-2.5 font-label-caps text-label-caps text-surface transition-transform hover:bg-opacity-90 active:scale-[0.98]"
+          className="mt-auto flex w-full items-center justify-center gap-2 rounded-md border-[1.5px] border-primary py-2.5 font-hand text-[15px] font-bold text-primary transition-colors hover:bg-primary hover:text-surface active:scale-[0.98]"
         >
           <Icon name="play_circle" className="text-[18px]" /> Re-run
         </button>
