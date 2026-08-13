@@ -1,19 +1,24 @@
 "use client";
 
+// Navbar + collapsible left rail + content column.
+//
+// The bottom transport bar used to be a fixed footer owned by this shell. It
+// isn't any more: controls and narration belong directly under the animation
+// (see LessonShell), so everything below the navbar is one flex row and the
+// content column owns its own vertical stacking.
+
 import { useState, type ReactNode } from "react";
-import { Navbar } from "@/components/layout/Navbar";
 import { BoardBackground } from "@/components/layout/BoardBackground";
+import { Navbar } from "@/components/layout/Navbar";
 import { Icon } from "@/components/ui/Icon";
 
 interface AppShellProps {
   children: ReactNode;
-  /** Left control rail. */
+  /** Left control rail — where you set up the experiment. */
   sidebar: ReactNode;
-  /** Bottom transport bar. */
-  footer: ReactNode;
 }
 
-export function AppShell({ children, sidebar, footer }: AppShellProps) {
+export function AppShell({ children, sidebar }: AppShellProps) {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [railOpen, setRailOpen] = useState(true);
 
@@ -22,10 +27,10 @@ export function AppShell({ children, sidebar, footer }: AppShellProps) {
       <BoardBackground />
       <Navbar />
 
-      <div className="mt-16 flex h-[calc(100dvh-120px)] w-full flex-1 overflow-hidden">
+      <div className="mt-16 flex h-[calc(100dvh-64px)] w-full overflow-hidden">
         {/* Control rail: collapsible column on md+, slide-in drawer on mobile */}
         <div
-          className={`fixed bottom-14 left-0 top-16 z-50 flex transition-transform duration-300 ease-out md:static md:bottom-0 md:top-0 md:z-auto md:translate-x-0 md:overflow-hidden md:transition-[width] ${
+          className={`fixed bottom-0 left-0 top-16 z-50 flex transition-transform duration-300 ease-out md:static md:top-0 md:z-auto md:translate-x-0 md:overflow-hidden md:transition-[width] ${
             drawerOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"
           } ${railOpen ? "md:w-72" : "md:w-0"}`}
         >
@@ -52,12 +57,10 @@ export function AppShell({ children, sidebar, footer }: AppShellProps) {
         {children}
       </div>
 
-      {footer}
-
       <button
         onClick={() => setDrawerOpen((v) => !v)}
         aria-label="Toggle controls"
-        className="fixed bottom-[4.5rem] right-4 z-[60] flex h-12 w-12 items-center justify-center rounded-full border-[1.5px] border-primary bg-primary text-surface shadow-lg transition-transform active:scale-95 md:hidden"
+        className="fixed bottom-4 right-4 z-[60] flex h-12 w-12 items-center justify-center rounded-full border-[1.5px] border-primary bg-primary text-surface shadow-lg transition-transform active:scale-95 md:hidden"
       >
         <Icon name={drawerOpen ? "close" : "tune"} className="text-[22px]" />
       </button>

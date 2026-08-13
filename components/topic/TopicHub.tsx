@@ -1,9 +1,21 @@
+import Link from "next/link";
 import { BoardBackground } from "@/components/layout/BoardBackground";
 import { Navbar } from "@/components/layout/Navbar";
 import { Breadcrumb } from "@/components/topic/Breadcrumb";
 import { TopicCard, type TopicCardProps } from "@/components/topic/TopicCard";
 import { Icon } from "@/components/ui/Icon";
 import { PALETTE } from "@/lib/palette";
+
+/** A run of cards under its own heading — how a unit page shows its topics. */
+export interface CardGroup {
+  title: string;
+  blurb?: string;
+  icon?: string;
+  /** Links the heading itself through to the category page. */
+  href?: string;
+  ready?: string;
+  cards: TopicCardProps[];
+}
 
 interface TopicHubProps {
   /** Path for the breadcrumb. Omit on the landing page. */
@@ -13,14 +25,27 @@ interface TopicHubProps {
   blurb: string;
   /** Small label above the title, e.g. "UNIT 1 · TOPOLOGIES". */
   eyebrow?: string;
-  cards: TopicCardProps[];
+  /** A flat grid of cards… */
+  cards?: TopicCardProps[];
+  /** …or several, each under a heading. */
+  groups?: CardGroup[];
   cardsHeading?: string;
   /** The aside a teacher writes in the corner before starting. */
   note?: { question: string; problem: string; idea: string; accent?: string };
 }
 
 /** Shared layout for the landing page and every drill-down hub page. */
-export function TopicHub({ path, icon, title, blurb, eyebrow, cards, cardsHeading, note }: TopicHubProps) {
+export function TopicHub({
+  path,
+  icon,
+  title,
+  blurb,
+  eyebrow,
+  cards,
+  groups,
+  cardsHeading,
+  note,
+}: TopicHubProps) {
   const accent = note?.accent ?? PALETTE.note;
   return (
     <div className="relative flex h-screen flex-col overflow-hidden">
@@ -47,7 +72,6 @@ export function TopicHub({ path, icon, title, blurb, eyebrow, cards, cardsHeadin
                 </p>
               )}
               <h1 className="font-headline-lg text-headline-lg text-on-surface">{title}</h1>
-              {/* The rule a teacher draws under the title as they say it. */}
               <div className="chalk-underline mt-1" />
               <p className="mt-2 max-w-2xl font-body-md text-body-md text-on-surface-variant">{blurb}</p>
             </div>
@@ -79,17 +103,51 @@ export function TopicHub({ path, icon, title, blurb, eyebrow, cards, cardsHeadin
             </div>
           )}
 
-          {cardsHeading && (
-            <h2 className="mb-md font-label-caps text-label-caps uppercase text-on-surface-variant">
-              {cardsHeading}
-            </h2>
+          {cards && (
+            <>
+              {cardsHeading && (
+                <h2 className="mb-md font-label-caps text-label-caps uppercase text-on-surface-variant">
+                  {cardsHeading}
+                </h2>
+              )}
+              <div className="grid grid-cols-1 gap-md sm:grid-cols-2 lg:grid-cols-3">
+                {cards.map((c) => (
+                  <TopicCard key={c.href} {...c} />
+                ))}
+              </div>
+            </>
           )}
 
-          <div className="grid grid-cols-1 gap-md sm:grid-cols-2 lg:grid-cols-3">
-            {cards.map((c) => (
-              <TopicCard key={c.href} {...c} />
-            ))}
-          </div>
+          {groups?.map((g) => (
+            <section key={g.title} className="mb-xl last:mb-0">
+              <div className="mb-md flex items-baseline gap-3 border-b-[1.5px] border-dashed border-outline-variant/60 pb-2">
+                {g.icon && <Icon name={g.icon} className="text-[18px] text-primary/80" />}
+                {g.href ? (
+                  <Link
+                    href={g.href}
+                    className="font-headline-sm text-headline-sm text-on-surface transition-colors hover:text-primary"
+                  >
+                    {g.title}
+                  </Link>
+                ) : (
+                  <h2 className="font-headline-sm text-headline-sm text-on-surface">{g.title}</h2>
+                )}
+                {g.blurb && (
+                  <p className="hidden min-w-0 flex-1 truncate font-body-sm text-body-sm text-on-surface-variant/70 md:block">
+                    {g.blurb}
+                  </p>
+                )}
+                {g.ready && (
+                  <span className="shrink-0 font-mono text-[10px] text-on-surface-variant/55">{g.ready}</span>
+                )}
+              </div>
+              <div className="grid grid-cols-1 gap-md sm:grid-cols-2 lg:grid-cols-3">
+                {g.cards.map((c) => (
+                  <TopicCard key={c.href} {...c} />
+                ))}
+              </div>
+            </section>
+          ))}
         </div>
       </div>
     </div>

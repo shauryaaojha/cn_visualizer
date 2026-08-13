@@ -574,6 +574,94 @@ export function getCategory(sectionSlug: string, categorySlug: string): Category
   return getSection(sectionSlug)?.categories.find((c) => c.slug === categorySlug);
 }
 
+// --- leaf ordering ----------------------------------------------------------
+//
+// A visualizer page needs to know where it sits in the syllabus so it can
+// offer prev/next and sibling tabs. Without this a leaf is a dead end: the only
+// way onward is the breadcrumb, which is two page loads to reach the topic
+// immediately after the one you are reading.
+
+export interface LeafRef {
+  section: string;
+  category: string;
+  slug: string;
+  title: string;
+  blurb: string;
+  icon: string;
+  status: TopicStatus;
+  href: string;
+  stats?: string[];
+}
+
+/** Flattens a category's leaves, walking sub-hub children in place. */
+export function leavesOf(sectionSlug: string, categorySlug: string): LeafRef[] {
+  const cat = getCategory(sectionSlug, categorySlug);
+  if (!cat) return [];
+  const out: LeafRef[] = [];
+  const walk = (leaves: LeafMeta[], prefix: string) => {
+    for (const l of leaves) {
+      if (l.children) {
+        walk(l.children, `${prefix}${l.slug}/`);
+        continue;
+      }
+      out.push({
+        section: sectionSlug,
+        category: categorySlug,
+        slug: `${prefix}${l.slug}`,
+        title: l.title,
+        blurb: l.blurb,
+        icon: l.icon,
+        status: l.status ?? "available",
+        stats: l.stats,
+        href: `/topics/${sectionSlug}/${categorySlug}/${prefix}${l.slug}`,
+      });
+    }
+  };
+  walk(cat.leaves, "");
+  return out;
+}
+
+/** Every leaf in a unit, in syllabus order, across all its categories. */
+export function leavesOfSection(sectionSlug: string): LeafRef[] {
+  const s = getSection(sectionSlug);
+  if (!s) return [];
+  return s.categories.flatMap((c) => leavesOf(sectionSlug, c.slug));
+}
+
+export interface LeafNeighbours {
+  current?: LeafRef;
+  /** Siblings within the same category — what the sidebar tabs show. */
+  siblings: LeafRef[];
+  /** Previous/next across the whole unit, skipping unbuilt leaves. */
+  prev?: LeafRef;
+  next?: LeafRef;
+  indexInUnit: number;
+  builtInUnit: number;
+}
+
+/** Resolves "/topics/fundamentals/topologies/bus" into its place in the unit. */
+export function leafNeighbours(path: string): LeafNeighbours {
+  const parts = path.split("/").filter(Boolean); // topics, section, category, ...leaf
+  const [, section, category] = parts;
+  const slug = parts.slice(3).join("/");
+  if (!section || !category || !slug) return { siblings: [], indexInUnit: 0, builtInUnit: 0 };
+
+  const siblings = leavesOf(section, category);
+  const unit = leavesOfSection(section);
+  // Navigation only ever lands on leaves that actually run.
+  const built = unit.filter((l) => l.status !== "soon");
+  const i = built.findIndex((l) => l.href === path);
+
+  return {
+    current: unit.find((l) => l.href === path),
+    siblings,
+    prev: i > 0 ? built[i - 1] : undefined,
+    next: i >= 0 && i < built.length - 1 ? built[i + 1] : undefined,
+    indexInUnit: i,
+    builtInUnit: built.length,
+  };
+}
+
 /** "failure-comparison" → "Failure Comparison". Used by the breadcrumb. */
 export function humanize(slug: string): string {
   const special: Record<string, string> = {

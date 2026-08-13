@@ -1,5 +1,5 @@
 import { TopicHub } from "@/components/topic/TopicHub";
-import { getCategory, getSection } from "@/data/curriculum";
+import { getCategory, getSection, leavesOf } from "@/data/curriculum";
 
 interface Props {
   section: string;
@@ -8,7 +8,7 @@ interface Props {
   note?: { question: string; problem: string; idea: string };
 }
 
-/** A category hub: lists the category's leaves as cards. */
+/** A category hub. Still routable, but no longer the only way to reach a leaf. */
 export function CategoryHub({ section, category, cardsHeading, note }: Props) {
   const s = getSection(section)!;
   const c = getCategory(section, category)!;
@@ -21,12 +21,12 @@ export function CategoryHub({ section, category, cardsHeading, note }: Props) {
       blurb={c.blurb}
       note={note}
       cardsHeading={cardsHeading ?? "Choose a topic"}
-      cards={c.leaves.map((l) => ({
+      cards={leavesOf(section, category).map((l) => ({
         title: l.title,
         blurb: l.blurb,
         icon: l.icon,
-        href: `/topics/${section}/${category}/${l.slug}`,
-        status: l.status ?? "available",
+        href: l.href,
+        status: l.status,
         stats: l.stats,
       }))}
     />

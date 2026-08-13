@@ -2,13 +2,15 @@
 // signalEngine — links drawn as pipes.
 //
 // The metaphor the whole unit hangs on: a pipe's THICKNESS is bandwidth and its
-// LENGTH is propagation delay. Pour the same file into two pipes of identical
-// thickness but very different length and the answer to "why is my fast
-// connection slow?" is visible without a word of explanation.
+// LENGTH is propagation delay. Pour the same file into two differently-shaped
+// pipes and the answer to "why is my fast connection slow?" is visible without
+// a word of explanation.
 //
-// The numbers are real. Nothing here is a hand-wave: transmission delay is
-// bits ÷ bandwidth, propagation is a fixed flight time, and the totals are
-// what you would actually measure.
+// Both links are fully editable — bandwidth, distance and file size — so this
+// stops being a demo and becomes a calculator you can put your own homework
+// numbers into. The maths is real: transmission is bits ÷ bandwidth,
+// propagation is a fixed flight time, and the totals are what you would
+// actually measure.
 // ---------------------------------------------------------------------------
 
 import type { DelaySeg, SignalProgram, SignalStep, SignalTrack } from "@/types/visualization";
@@ -18,32 +20,30 @@ const QUEUE_MS = 1.2;
 const PROC_MS = 0.4;
 const START_MS = QUEUE_MS + PROC_MS;
 
-interface TrackSpec {
-  id: string;
+export interface LinkSpec {
   label: string;
-  medium: string;
   bandwidthMbps: number;
   propagationMs: number;
-  tone: SignalTrack["tone"];
 }
 
-const TRACKS: TrackSpec[] = [
-  {
-    id: "fibre",
-    label: "Fibre",
-    medium: "ground fibre, ~400 km",
-    bandwidthMbps: 100,
-    propagationMs: 2,
-    tone: "signal",
-  },
-  {
-    id: "sat",
-    label: "Satellite",
-    medium: "geostationary, 2 × 36 000 km",
-    bandwidthMbps: 100,
-    propagationMs: 300,
-    tone: "amber",
-  },
+export interface SignalRunParams {
+  fileKB: number;
+  a: LinkSpec;
+  b: LinkSpec;
+}
+
+export const SIGNAL_DEFAULTS: SignalRunParams = {
+  fileKB: 10,
+  a: { label: "Fibre", bandwidthMbps: 100, propagationMs: 2 },
+  b: { label: "Satellite", bandwidthMbps: 100, propagationMs: 300 },
+};
+
+/** One-click media presets — pick a medium, then edit the numbers if you like. */
+export const LINK_PRESETS: (LinkSpec & { hint: string })[] = [
+  { label: "LAN", bandwidthMbps: 1000, propagationMs: 0.05, hint: "same building, gigabit" },
+  { label: "Fibre", bandwidthMbps: 100, propagationMs: 2, hint: "~400 km of ground fibre" },
+  { label: "DSL", bandwidthMbps: 8, propagationMs: 15, hint: "copper to the exchange" },
+  { label: "Satellite", bandwidthMbps: 100, propagationMs: 300, hint: "geostationary, 2 × 36 000 km" },
 ];
 
 export const FILE_PRESETS = [
@@ -52,18 +52,32 @@ export const FILE_PRESETS = [
   { kb: 102400, label: "100 MB", what: "a video" },
 ];
 
-const clamp01 = (v: number) => Math.max(0, Math.min(1, v));
+export const MIN_KB = 1;
+export const MAX_KB = 1024 * 1024; // 1 GB
+export const MIN_MBPS = 0.1;
+export const MAX_MBPS = 10000;
+export const MIN_PROP = 0.01;
+export const MAX_PROP = 2000;
 
-function fmtMs(ms: number): string {
+const clamp01 = (v: number) => Math.max(0, Math.min(1, v));
+const clamp = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, v));
+
+export function fmtMs(ms: number): string {
   if (ms >= 1000) return `${(ms / 1000).toFixed(2)} s`;
   if (ms >= 10) return `${ms.toFixed(1)} ms`;
   return `${ms.toFixed(2)} ms`;
 }
 
-function fmtBits(bits: number): string {
+export function fmtBits(bits: number): string {
   if (bits >= 8e6) return `${(bits / 8 / 1024 / 1024).toFixed(1)} MB`;
   if (bits >= 8192) return `${(bits / 8 / 1024).toFixed(1)} KB`;
   return `${Math.round(bits / 8)} B`;
+}
+
+export function fmtSize(kb: number): string {
+  if (kb >= 1024 * 1024) return `${(kb / 1024 / 1024).toFixed(2)} GB`;
+  if (kb >= 1024) return `${(kb / 1024).toFixed(kb % 1024 === 0 ? 0 : 1)} MB`;
+  return `${kb} KB`;
 }
 
 const CODE = [
@@ -72,45 +86,59 @@ const CODE = [
   "transmission = file_size / bandwidth   -- time to PUSH the bits out",
   "propagation  = distance  / speed       -- time for bits to TRAVEL",
   "",
-  "given: BOTH links run at 100 Mbps",
-  "       fibre      propagation =   2 ms",
-  "       satellite  propagation = 300 ms",
+  "-- your two links --",
+  "link A: bandwidth, propagation",
+  "link B: bandwidth, propagation",
   "",
   "send the same file down both pipes",
   "compare total_delay",
 ];
 
-interface Derived extends TrackSpec {
+interface Derived extends LinkSpec {
+  id: string;
   totalBits: number;
   bpms: number;
   txMs: number;
   finishMs: number;
+  tone: SignalTrack["tone"];
 }
 
-function derive(fileKB: number): Derived[] {
-  const totalBits = fileKB * 1024 * 8;
-  return TRACKS.map((t) => {
-    const bpms = t.bandwidthMbps * 1000; // Mbps → bits per millisecond
+function derive(p: SignalRunParams): Derived[] {
+  const kb = clamp(p.fileKB, MIN_KB, MAX_KB);
+  const totalBits = kb * 1024 * 8;
+  return [
+    { ...p.a, id: "a", tone: "signal" as const },
+    { ...p.b, id: "b", tone: "amber" as const },
+  ].map((t) => {
+    const bw = clamp(t.bandwidthMbps, MIN_MBPS, MAX_MBPS);
+    const prop = clamp(t.propagationMs, MIN_PROP, MAX_PROP);
+    const bpms = bw * 1000; // Mbps → bits per millisecond
     const txMs = totalBits / bpms;
-    return { ...t, totalBits, bpms, txMs, finishMs: START_MS + txMs + t.propagationMs };
+    return {
+      ...t,
+      bandwidthMbps: bw,
+      propagationMs: prop,
+      totalBits,
+      bpms,
+      txMs,
+      finishMs: START_MS + txMs + prop,
+    };
   });
 }
 
 function sample(d: Derived, t: number): SignalTrack {
   const since = t - START_MS;
-  const sentBits = clamp01(since / d.txMs) * d.totalBits;
-  const deliveredBits = clamp01((since - d.propagationMs) / d.txMs) * d.totalBits;
   return {
     id: d.id,
     label: d.label,
-    sub: `${d.medium} · ${d.bandwidthMbps} Mbps · ${d.propagationMs} ms one-way`,
+    sub: `${d.bandwidthMbps} Mbps · ${d.propagationMs} ms one-way`,
     bandwidthMbps: d.bandwidthMbps,
     propagationMs: d.propagationMs,
     frontT: clamp01(since / d.propagationMs),
     tailT: clamp01((since - d.txMs) / d.propagationMs),
-    sentBits,
+    sentBits: clamp01(since / d.txMs) * d.totalBits,
     totalBits: d.totalBits,
-    deliveredBits,
+    deliveredBits: clamp01((since - d.propagationMs) / d.txMs) * d.totalBits,
     elapsedMs: Math.min(t, d.finishMs),
     finishedMs: t >= d.finishMs ? d.finishMs : undefined,
     tone: d.tone,
@@ -126,30 +154,27 @@ function segsFor(d: Derived): DelaySeg[] {
   ];
 }
 
-function bandwidthVsLatency(fileKB: number): SignalProgram {
-  const ds = derive(fileKB);
-  const [fibre, sat] = ds;
-  const txMs = fibre.txMs; // identical — same bandwidth
+function bandwidthVsLatency(p: SignalRunParams): SignalProgram {
+  const ds = derive(p);
+  const [A, B] = ds;
+  const sizeLabel = fmtSize(clamp(p.fileKB, MIN_KB, MAX_KB));
   const maxFinish = Math.max(...ds.map((d) => d.finishMs));
-  const preset = FILE_PRESETS.find((p) => p.kb === fileKB);
-  const sizeLabel = preset ? `${preset.label} (${preset.what})` : `${fileKB} KB`;
-  const ratio = sat.finishMs / fibre.finishMs;
 
-  // Sample the virtual clock where something actually changes, rather than at
-  // a fixed cadence — otherwise a 300 ms satellite hop drowns out a 0.8 ms
-  // transmission phase entirely.
-  const times = new Set<number>([
-    0,
-    START_MS * 0.6,
-    START_MS,
-    START_MS + txMs * 0.5,
-    START_MS + txMs,
-    fibre.finishMs,
-  ]);
-  for (let i = 1; i <= 4; i++) {
-    times.add(fibre.finishMs + ((sat.finishMs - fibre.finishMs) * i) / 5);
+  // Whichever link wins, the narration should name the right one.
+  const fast = A.finishMs <= B.finishMs ? A : B;
+  const slow = fast === A ? B : A;
+  const ratio = slow.finishMs / fast.finishMs;
+  const sameBandwidth = A.bandwidthMbps === B.bandwidthMbps;
+
+  // Sample the virtual clock where something actually changes, rather than at a
+  // fixed cadence — a 300 ms hop would otherwise drown out a 0.8 ms transmission.
+  const times = new Set<number>([0, START_MS * 0.6, START_MS]);
+  for (const d of ds) {
+    times.add(START_MS + d.txMs * 0.5);
+    times.add(START_MS + d.txMs);
+    times.add(d.finishMs);
   }
-  times.add(sat.finishMs);
+  for (let i = 1; i <= 4; i++) times.add(fast.finishMs + ((slow.finishMs - fast.finishMs) * i) / 5);
   const clocks = [...times].filter((t) => t >= 0 && t <= maxFinish).sort((a, b) => a - b);
 
   const chart = {
@@ -164,7 +189,9 @@ function bandwidthVsLatency(fileKB: number): SignalProgram {
     tracks: ds.map((d) => sample(d, 0)),
     clockMs: 0,
     chart,
-    description: `Two links, ${sizeLabel} to send down each. Both run at exactly 100 Mbps — identical bandwidth, so the pipes are equally THICK. The only difference is length: how far the bits have to physically travel.`,
+    description: sameBandwidth
+      ? `Two links, ${sizeLabel} to send down each. Both run at ${A.bandwidthMbps} Mbps — identical bandwidth, so the pipes are equally THICK. The only difference is length: how far the bits must physically travel.`
+      : `Two links, ${sizeLabel} to send down each. ${A.label} is ${A.bandwidthMbps} Mbps over ${A.propagationMs} ms; ${B.label} is ${B.bandwidthMbps} Mbps over ${B.propagationMs} ms. Thicker pipe, or shorter pipe — watch which one actually wins.`,
     codeLines: [6, 7, 8],
   });
 
@@ -172,24 +199,23 @@ function bandwidthVsLatency(fileKB: number): SignalProgram {
     if (t === 0) continue;
     let description: string;
     let codeLines: number[] = [1];
+    const bothTxDone = ds.every((d) => t >= START_MS + d.txMs);
 
     if (t <= START_MS) {
       description = `${fmtMs(t)}. Nothing is moving yet. The packet is sitting in the router's queue and having its header examined — queuing and processing delay, the two components people forget.`;
-      codeLines = [1];
-    } else if (t < START_MS + txMs) {
-      description = `${fmtMs(t)}. Transmission delay: the interface is clocking bits onto the wire at 100 Mbps. Both links fill at exactly the same rate, because this is the part bandwidth controls.`;
+    } else if (!bothTxDone) {
+      description = sameBandwidth
+        ? `${fmtMs(t)}. Transmission delay: both interfaces are clocking bits onto the wire at the same rate, because this is the part bandwidth controls.`
+        : `${fmtMs(t)}. Transmission delay: ${A.label} needs ${fmtMs(A.txMs)} to push the file out, ${B.label} needs ${fmtMs(B.txMs)}. This is the only part bandwidth controls.`;
       codeLines = [3];
-    } else if (Math.abs(t - (START_MS + txMs)) < 1e-9) {
-      description = `${fmtMs(t)}. Last bit is on the wire after ${fmtMs(txMs)}. Bandwidth's job is now completely finished — everything from here is travel time, and no amount of extra bandwidth would help.`;
-      codeLines = [3, 4];
-    } else if (t < fibre.finishMs) {
-      description = `${fmtMs(t)}. Propagation: the bits are in flight. The fibre's pipe is short so its leading edge is nearly there; the satellite's bits are climbing 36 000 km to orbit.`;
+    } else if (t < fast.finishMs) {
+      description = `${fmtMs(t)}. Every bit is on the wire — bandwidth's job is finished. Everything from here is pure travel time, and no amount of extra bandwidth would help.`;
       codeLines = [4];
-    } else if (t < sat.finishMs) {
-      description = `${fmtMs(t)}. Fibre is done — the whole file has landed. The satellite link has transmitted every one of its bits too, and is now just waiting for them to arrive.`;
+    } else if (t < slow.finishMs) {
+      description = `${fmtMs(t)}. ${fast.label} is done — the whole file has landed. ${slow.label} has transmitted every one of its bits too, and is now just waiting for them to arrive.`;
       codeLines = [4, 10];
     } else {
-      description = `${fmtMs(t)}. Satellite finally completes. Same file, same bandwidth, ${ratio.toFixed(ratio >= 10 ? 0 : 2)}× the wait.`;
+      description = `${fmtMs(t)}. ${slow.label} finally completes, ${ratio.toFixed(ratio >= 10 ? 0 : 2)}× behind.`;
       codeLines = [10, 11];
     }
 
@@ -200,27 +226,26 @@ function bandwidthVsLatency(fileKB: number): SignalProgram {
       description,
       codeLines,
       message:
-        Math.abs(t - fibre.finishMs) < 1e-9
-          ? { text: `Fibre delivered in ${fmtMs(fibre.finishMs)}`, tone: "ok" }
+        Math.abs(t - fast.finishMs) < 1e-9
+          ? { text: `${fast.label} delivered in ${fmtMs(fast.finishMs)}`, tone: "ok" }
           : undefined,
     });
   }
 
-  // The payoff: the same two links, opposite conclusions, depending only on size.
-  const bigFile = ratio < 1.5;
+  const close = ratio < 1.5;
   steps.push({
     tracks: ds.map((d) => sample(d, maxFinish)),
     clockMs: maxFinish,
     chart,
-    description: bigFile
-      ? `At ${sizeLabel} the verdict flips. Transmission delay (${fmtMs(txMs)}) now dwarfs the 300 ms flight time, so satellite is only ${ratio.toFixed(2)}× slower — practically the same. Bandwidth dominates for big transfers; latency dominates for small ones. Switch the file size in the sidebar and watch the conclusion reverse.`
-      : `${sizeLabel} takes ${fmtMs(fibre.finishMs)} on fibre and ${fmtMs(sat.finishMs)} on satellite — ${ratio.toFixed(ratio >= 10 ? 0 : 2)}× longer, with identical bandwidth. This is why a "fast" connection can feel slow: bandwidth sets how much you can push per second, latency sets how long the first byte takes to arrive, and clicking a link is dominated by latency. Try 100 MB in the sidebar — the verdict reverses.`,
+    description: close
+      ? `At ${sizeLabel} the two links are within ${ratio.toFixed(2)}× of each other. Transmission time now dominates, so bandwidth is what matters and the difference in distance has almost stopped mattering. Shrink the file and the verdict flips.`
+      : `${sizeLabel} takes ${fmtMs(fast.finishMs)} on ${fast.label} and ${fmtMs(slow.finishMs)} on ${slow.label} — ${ratio.toFixed(ratio >= 10 ? 0 : 2)}× longer${sameBandwidth ? ", with identical bandwidth" : ""}. Bandwidth sets how much you can push per second; latency sets how long the first byte takes to arrive. Clicking a link is dominated by latency. Try a much larger file — the verdict reverses.`,
     codeLines: [10, 11],
     message: {
-      text: bigFile
-        ? `Satellite only ${ratio.toFixed(2)}× slower — bandwidth wins at this size`
-        : `Satellite ${ratio.toFixed(ratio >= 10 ? 0 : 2)}× slower at identical bandwidth`,
-      tone: bigFile ? "ok" : "error",
+      text: close
+        ? `Only ${ratio.toFixed(2)}× apart — bandwidth wins at this size`
+        : `${slow.label} ${ratio.toFixed(ratio >= 10 ? 0 : 2)}× slower`,
+      tone: close ? "ok" : "error",
     },
   });
 
@@ -229,14 +254,13 @@ function bandwidthVsLatency(fileKB: number): SignalProgram {
     title: `Bandwidth vs Latency — ${sizeLabel}`,
     pseudocode: CODE,
     stats: [
-      { label: "File", value: preset?.label ?? `${fileKB} KB`, tone: "signal" },
-      { label: "Transmission", value: fmtMs(txMs), tone: "signal" },
-      { label: "Fibre total", value: fmtMs(fibre.finishMs), tone: "mint" },
-      { label: "Satellite total", value: fmtMs(sat.finishMs), tone: "amber" },
+      { label: "File", value: sizeLabel, tone: "signal" },
+      { label: A.label, value: fmtMs(A.finishMs), tone: A.finishMs <= B.finishMs ? "mint" : "amber" },
+      { label: B.label, value: fmtMs(B.finishMs), tone: B.finishMs < A.finishMs ? "mint" : "amber" },
       {
-        label: "Satellite is",
-        value: `${ratio.toFixed(ratio >= 10 ? 0 : 2)}× slower`,
-        tone: ratio < 1.5 ? "mint" : "coral",
+        label: "Gap",
+        value: `${ratio.toFixed(ratio >= 10 ? 0 : 2)}×`,
+        tone: close ? "mint" : "coral",
       },
     ],
   };
@@ -244,9 +268,7 @@ function bandwidthVsLatency(fileKB: number): SignalProgram {
 
 export type SignalOp = "bandwidthVsLatency";
 
-export function runSignalOperation(op: SignalOp, params: { fileKB?: number } = {}): SignalProgram {
+export function runSignalOperation(op: SignalOp, p: SignalRunParams): SignalProgram {
   void op;
-  return bandwidthVsLatency(params.fileKB ?? 10);
+  return bandwidthVsLatency(p);
 }
-
-export { fmtMs, fmtBits };

@@ -1,31 +1,60 @@
 "use client";
 
-// Left rail for netEngine leaves: switch topology, inject a fault, re-run.
+// Left rail for netEngine leaves: pick the hosts, pick the endpoints, cut a
+// link, re-run.
 //
-// The Faults block is the part that makes this a simulator. Every engine takes
-// the same Fault[], so this section will look identical on the routing and
-// error-control screens later.
+// Nothing here is a preset any more. Because the engine finds paths by BFS
+// rather than following a written-down route, sender, receiver, host count and
+// the severed link are all free variables — so this rail is where you set up
+// your own experiment rather than replay mine.
 
-import { useRouter } from "next/navigation";
+import { useMemo } from "react";
 import { Icon } from "@/components/ui/Icon";
-import { NET_OPERATIONS, netFaults } from "@/engines/netEngine";
+import { Chips, Field, Select } from "@/components/ui/Field";
+import { SidebarTabs } from "@/components/visualizer/SidebarTabs";
+import { cuttableLinks, HOST_IDS, MAX_HOSTS, MIN_HOSTS, suggestedCut } from "@/engines/netEngine";
 import { useNetStore } from "@/lib/netStore";
 import type { Fault } from "@/types/visualization";
 
 export function NetworkSidebar() {
-  const router = useRouter();
   const params = useNetStore((s) => s.params);
   const run = useNetStore((s) => s.run);
 
-  const options = netFaults(params.op);
-  const enabled = (f: Fault) => params.faults.some((x) => x.kind === f.kind && "id" in x && "id" in f && x.id === f.id);
+  const ids = HOST_IDS.slice(0, params.hosts);
+  const isComparison = params.op === "topoFailure";
 
-  const toggle = (f: Fault) => {
-    const next = enabled(f)
-      ? params.faults.filter((x) => !(x.kind === f.kind && "id" in x && "id" in f && x.id === f.id))
-      : [...params.faults, f];
-    run({ faults: next });
+  const links = useMemo(
+    () => cuttableLinks(params.op, params.hosts, params.from, params.to),
+    [params.op, params.hosts, params.from, params.to],
+  );
+
+  const currentCut = params.faults.find((f) => f.kind === "linkDown");
+  const cutId = currentCut && "id" in currentCut ? currentCut.id : "";
+
+  const setCut = (id: string) => {
+    const faults: Fault[] = id ? [{ kind: "linkDown", id }] : [];
+    run({ faults });
   };
+
+  /** Changing hosts can orphan the endpoints and the chosen cut — re-derive. */
+  const setHosts = (hosts: number) => {
+    const next = HOST_IDS.slice(0, hosts);
+    const from = next.includes(params.from) ? params.from : next[0];
+    const to = next.includes(params.to) ? params.to : next[next.length - 1];
+    run({ hosts, from, to, faults: [] });
+  };
+
+  const setEndpoint = (which: "from" | "to", value: string) => {
+    const other = which === "from" ? params.to : params.from;
+    // Keep them distinct, otherwise there is no journey to animate.
+    const patch =
+      value === other
+        ? { [which]: value, [which === "from" ? "to" : "from"]: ids.find((i) => i !== value)! }
+        : { [which]: value };
+    run({ ...patch, faults: [] });
+  };
+
+  const suggestion = suggestedCut(params.op, params.hosts, params.from, params.to);
 
   return (
     <aside className="scroll-thin z-40 flex h-full w-72 shrink-0 flex-col overflow-y-auto border-r-[1.5px] border-dashed border-outline-variant bg-surface-container-low/95 backdrop-blur-xl md:bg-surface-container-low/80">
@@ -35,70 +64,68 @@ export function NetworkSidebar() {
           <h2 className="font-hand text-[17px] font-bold text-primary">Topology</h2>
         </div>
 
-        <p className="font-body-sm text-body-sm leading-relaxed text-on-surface-variant">
-          The same six hosts A–F in every layout, so what changes between them is only the wiring.
-        </p>
+        <SidebarTabs />
 
-        <div>
-          <label className="mb-1.5 block font-label-caps text-[9px] uppercase tracking-[0.08em] text-on-surface-variant/70">LAYOUT</label>
-          <div className="grid grid-cols-3 gap-1">
-            {NET_OPERATIONS.map((t) => {
-              const selected = t.id === params.op;
-              return (
-                <button
-                  key={t.id}
-                  onClick={() => router.push(`/topics/fundamentals/${t.subpath}`)}
-                  title={t.label}
-                  className={`flex flex-col items-center gap-0.5 rounded-md border-[1.5px] border-dashed px-1 py-1.5 transition-colors ${
-                    selected
-                      ? "border-[1.5px] border-primary bg-primary/12 text-primary"
-                      : "border-outline-variant text-on-surface-variant hover:border-primary/60 hover:text-on-surface"
-                  }`}
-                >
-                  <Icon name={t.icon} className="text-[16px]" />
-                  <span className="text-center font-label-caps text-[8px] leading-tight">{t.label}</span>
-                </button>
-              );
-            })}
-          </div>
+        <Field label="Hosts" hint="The same hosts get rewired for every layout.">
+          <Chips
+            value={params.hosts}
+            onChange={setHosts}
+            columns={5}
+            options={Array.from({ length: MAX_HOSTS - MIN_HOSTS + 1 }, (_, i) => ({
+              value: MIN_HOSTS + i,
+              label: String(MIN_HOSTS + i),
+            }))}
+          />
+        </Field>
+
+        <div className="grid grid-cols-2 gap-2">
+          <Field label="Sender">
+            <Select
+              value={params.from}
+              onChange={(v) => setEndpoint("from", v)}
+              options={ids.map((i) => ({ value: i, label: i }))}
+            />
+          </Field>
+          <Field label="Receiver">
+            <Select
+              value={params.to}
+              onChange={(v) => setEndpoint("to", v)}
+              options={ids.map((i) => ({ value: i, label: i }))}
+            />
+          </Field>
         </div>
 
         {/* Faults — break the network on purpose */}
-        <div>
-          <label className="mb-1.5 flex items-center gap-1.5 font-label-caps text-[9px] uppercase tracking-[0.08em] text-coral">
-            <Icon name="warning" className="text-[13px]" /> FAULTS
+        <div className="flex flex-col gap-1">
+          <label className="flex items-center gap-1.5 font-label-caps text-[9px] uppercase tracking-[0.08em] text-coral">
+            <Icon name="warning" className="text-[13px]" /> Cut a link
           </label>
-          {options.length === 0 ? (
+          {isComparison ? (
             <p className="font-body-sm text-body-sm leading-relaxed text-on-surface-variant/75">
-              This comparison already cuts one link in every topology — that is the whole experiment. Open a single
-              layout to choose the fault yourself.
+              This comparison already cuts the middle hop of each topology&apos;s route — that is the whole
+              experiment. Open a single layout to choose the link yourself.
             </p>
           ) : (
-            <div className="flex flex-col gap-1.5">
-              {options.map((o) => {
-                const on = enabled(o.fault);
-                return (
-                  <button
-                    key={o.id}
-                    onClick={() => toggle(o.fault)}
-                    className={`flex items-start gap-2 rounded-md border-[1.5px] border-dashed px-2 py-2 text-left transition-colors ${
-                      on
-                        ? "border-[1.5px] border-coral bg-coral/12 text-coral"
-                        : "border-outline-variant text-on-surface-variant hover:border-coral/60"
-                    }`}
-                  >
-                    <Icon
-                      name={on ? "check_box" : "check_box_outline_blank"}
-                      className="mt-px shrink-0 text-[15px]"
-                    />
-                    <span className="min-w-0">
-                      <span className="block font-hand text-[13.5px] font-bold leading-tight">{o.label}</span>
-                      <span className="mt-0.5 block font-body-sm text-[12px] leading-snug opacity-75">{o.hint}</span>
-                    </span>
-                  </button>
-                );
-              })}
-            </div>
+            <>
+              <Select
+                value={cutId}
+                onChange={setCut}
+                options={[
+                  { value: "", label: "— nothing cut —" },
+                  ...links.map((l) => ({
+                    value: l.id,
+                    label: l.suggested ? `${l.label}  ★` : l.label,
+                  })),
+                ]}
+              />
+              <p className="font-body-sm text-[11px] leading-snug text-on-surface-variant/60">
+                {cutId
+                  ? cutId === suggestion
+                    ? "★ the middle hop of the current route — the interesting one to break."
+                    : "Not on the current route? Then nothing will change. That is a result too."
+                  : "★ marks the middle hop of the route in use."}
+              </p>
+            </>
           )}
         </div>
 

@@ -1,10 +1,23 @@
 "use client";
 
-// File size is the only knob — and it is the whole experiment. Small file,
-// latency wins; big file, bandwidth wins. Same two links either way.
+// Both links are fully editable, which turns this page from a demo into a
+// calculator: put your own bandwidth and distance numbers in and the delay
+// maths, the pipe geometry and the verdict all follow.
 
 import { Icon } from "@/components/ui/Icon";
-import { FILE_PRESETS } from "@/engines/signalEngine";
+import { Chips, Field, NumberInput } from "@/components/ui/Field";
+import { SidebarTabs } from "@/components/visualizer/SidebarTabs";
+import {
+  FILE_PRESETS,
+  LINK_PRESETS,
+  MAX_KB,
+  MAX_MBPS,
+  MAX_PROP,
+  MIN_KB,
+  MIN_MBPS,
+  MIN_PROP,
+  type LinkSpec,
+} from "@/engines/signalEngine";
 import { useSignalStore } from "@/lib/signalStore";
 
 export function SignalSidebar() {
@@ -19,55 +32,39 @@ export function SignalSidebar() {
           <h2 className="font-hand text-[17px] font-bold text-primary">Bandwidth vs Latency</h2>
         </div>
 
-        <p className="font-body-sm text-body-sm leading-relaxed text-on-surface-variant">
-          Both links run at exactly <span className="font-bold text-primary">100 Mbps</span>. The only difference is
-          how far the bits must travel. Change the file size and watch the verdict flip.
-        </p>
+        <SidebarTabs />
 
-        <div>
-          <label className="mb-1.5 block font-label-caps text-[9px] uppercase tracking-[0.08em] text-on-surface-variant/70">FILE SIZE</label>
-          <div className="flex flex-col gap-1">
-            {FILE_PRESETS.map((p) => {
-              const selected = p.kb === params.fileKB;
-              return (
-                <button
-                  key={p.kb}
-                  onClick={() => run({ fileKB: p.kb })}
-                  className={`flex items-baseline justify-between rounded-md border-[1.5px] border-dashed px-2.5 py-2 transition-colors ${
-                    selected
-                      ? "border-[1.5px] border-primary bg-primary/12 text-primary"
-                      : "border-outline-variant text-on-surface-variant hover:border-primary/60 hover:text-on-surface"
-                  }`}
-                >
-                  <span className="font-mono text-[13px] font-bold">{p.label}</span>
-                  <span className="font-body-sm text-[12px] opacity-75">{p.what}</span>
-                </button>
-              );
-            })}
+        <Field label="File size" hint="Small files are decided by latency, large ones by bandwidth.">
+          <Chips
+            value={params.fileKB}
+            onChange={(fileKB) => run({ fileKB })}
+            columns={3}
+            options={FILE_PRESETS.map((p) => ({ value: p.kb, label: p.label, title: p.what }))}
+          />
+          <div className="mt-1">
+            <NumberInput
+              value={params.fileKB}
+              min={MIN_KB}
+              max={MAX_KB}
+              onCommit={(fileKB) => run({ fileKB })}
+              suffix="KB"
+            />
           </div>
-        </div>
+        </Field>
 
-        <div>
-          <label className="mb-1.5 block font-label-caps text-[9px] uppercase tracking-[0.08em] text-on-surface-variant/70">THE TWO LINKS</label>
-          <div className="flex flex-col gap-1.5 font-body-sm text-[12px] leading-snug">
-            <div className="rounded-md border-l-[3px] border-primary bg-primary/[0.07] px-2 py-1.5">
-              <span className="font-label-caps text-[9px] uppercase text-primary">Fibre</span>
-              <p className="text-on-surface-variant/80">400 km of ground fibre. 2 ms each way.</p>
-            </div>
-            <div className="rounded-md border-l-[3px] border-amber bg-amber/[0.07] px-2 py-1.5">
-              <span className="font-label-caps text-[9px] uppercase text-amber">Satellite</span>
-              <p className="text-on-surface-variant/80">
-                Up to geostationary orbit and back — 72 000 km. 300 ms each way, no matter how fast the link is.
-              </p>
-            </div>
-          </div>
-        </div>
+        <LinkEditor
+          which="a"
+          spec={params.a}
+          accent="text-primary border-primary"
+          onChange={(a) => run({ a })}
+        />
+        <LinkEditor which="b" spec={params.b} accent="text-amber border-amber" onChange={(b) => run({ b })} />
 
         <div className="rounded-md border-l-[3px] border-mint/70 bg-mint/[0.07] px-2.5 py-2">
           <p className="font-label-caps text-[9px] uppercase tracking-wider text-mint">The rule</p>
           <p className="mt-1 font-body-sm text-[12.5px] leading-snug text-on-surface-variant/85">
             Bandwidth decides how much you can push per second. Latency decides how long the first bit takes to
-            arrive. Small transfers are dominated by latency; large ones by bandwidth.
+            arrive. No amount of bandwidth shortens a 300 ms trip to orbit.
           </p>
         </div>
 
@@ -79,5 +76,73 @@ export function SignalSidebar() {
         </button>
       </div>
     </aside>
+  );
+}
+
+function LinkEditor({
+  which,
+  spec,
+  accent,
+  onChange,
+}: {
+  which: "a" | "b";
+  spec: LinkSpec;
+  accent: string;
+  onChange: (s: LinkSpec) => void;
+}) {
+  return (
+    <div className="rounded-md border-[1.5px] border-dashed border-outline-variant p-2">
+      <div className="mb-1.5 flex items-baseline justify-between">
+        <span className={`font-hand text-[15px] font-bold ${accent.split(" ")[0]}`}>
+          Link {which.toUpperCase()} — {spec.label}
+        </span>
+      </div>
+
+      {/* Presets fill the numbers; the numbers stay editable afterwards. */}
+      <div className="mb-2 grid grid-cols-4 gap-1">
+        {LINK_PRESETS.map((p) => {
+          const on = p.label === spec.label && p.bandwidthMbps === spec.bandwidthMbps && p.propagationMs === spec.propagationMs;
+          return (
+            <button
+              key={p.label}
+              title={p.hint}
+              onClick={() =>
+                onChange({ label: p.label, bandwidthMbps: p.bandwidthMbps, propagationMs: p.propagationMs })
+              }
+              className={`rounded-md border-[1.5px] px-1 py-1 font-mono text-[9.5px] transition-colors ${
+                on
+                  ? `${accent} bg-white/[0.06]`
+                  : "border-dashed border-outline-variant text-on-surface-variant hover:border-primary/60"
+              }`}
+            >
+              {p.label}
+            </button>
+          );
+        })}
+      </div>
+
+      <div className="grid grid-cols-2 gap-2">
+        <Field label="Bandwidth">
+          <NumberInput
+            value={spec.bandwidthMbps}
+            min={MIN_MBPS}
+            max={MAX_MBPS}
+            step={1}
+            suffix="Mb/s"
+            onCommit={(bandwidthMbps) => onChange({ ...spec, bandwidthMbps })}
+          />
+        </Field>
+        <Field label="One-way delay">
+          <NumberInput
+            value={spec.propagationMs}
+            min={MIN_PROP}
+            max={MAX_PROP}
+            step={1}
+            suffix="ms"
+            onCommit={(propagationMs) => onChange({ ...spec, propagationMs })}
+          />
+        </Field>
+      </div>
+    </div>
   );
 }

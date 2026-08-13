@@ -7,7 +7,6 @@ export default function Page() {
       title="Bandwidth vs Latency"
       blurb="Same file, same 100 Mbps, two pipes. Why a fast connection can feel slow."
       operation="bandwidthVsLatency"
-      defaultFileKB={10}
     />
   );
 }
