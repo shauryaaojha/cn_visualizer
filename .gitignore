@@ -32,3 +32,6 @@ next-env.d.ts
 
 # next build info
 tsconfig.tsbuildinfo
+
+# static export
+/out/

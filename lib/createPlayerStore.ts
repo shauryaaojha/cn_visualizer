@@ -24,6 +24,7 @@ export interface PlayerSnapshot {
   isPlaying: boolean;
   speed: number;
   togglePlay: () => void;
+  pause: () => void;
   stepForward: () => void;
   stepBack: () => void;
   toStart: () => void;

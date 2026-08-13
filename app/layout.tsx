@@ -30,13 +30,10 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
+    // Every font is self-hosted: next/font vendors Kalam and JetBrains Mono at
+    // build time, and Material Symbols is a local subset (see globals.css).
+    // The app makes no network requests at runtime — it works with wifi off.
     <html lang="en" className="dark">
-      <head>
-        <link
-          href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap"
-          rel="stylesheet"
-        />
-      </head>
       <body
         className={`${kalam.variable} ${jetbrainsMono.variable} font-body-md text-body-md text-on-background antialiased`}
       >

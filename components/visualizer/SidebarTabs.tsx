@@ -10,10 +10,10 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Icon } from "@/components/ui/Icon";
-import { leafNeighbours } from "@/data/curriculum";
+import { leafNeighbours, normalizePath } from "@/data/curriculum";
 
 export function SidebarTabs({ columns = 3 }: { columns?: number }) {
-  const pathname = usePathname();
+  const pathname = normalizePath(usePathname());
   const { siblings } = leafNeighbours(pathname);
   if (siblings.length < 2) return null;
 

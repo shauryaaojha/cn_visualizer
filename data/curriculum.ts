@@ -640,7 +640,17 @@ export interface LeafNeighbours {
 }
 
 /** Resolves "/topics/fundamentals/topologies/bus" into its place in the unit. */
-export function leafNeighbours(path: string): LeafNeighbours {
+/**
+ * Strips a trailing slash. `trailingSlash: true` in next.config means
+ * usePathname reports "/topics/a/b/", while every curriculum href is written
+ * without one — so anything comparing the two must normalise first.
+ */
+export function normalizePath(p: string): string {
+  return p.length > 1 ? p.replace(/\/+$/, "") : p;
+}
+
+export function leafNeighbours(rawPath: string): LeafNeighbours {
+  const path = normalizePath(rawPath);
   const parts = path.split("/").filter(Boolean); // topics, section, category, ...leaf
   const [, section, category] = parts;
   const slug = parts.slice(3).join("/");
