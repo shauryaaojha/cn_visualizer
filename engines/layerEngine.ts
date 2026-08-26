@@ -285,9 +285,167 @@ function encapsulation(p: LayerRunParams): LayerProgram {
   };
 }
 
-export type LayerOp = "encapsulation";
+// --- operation: OSI 7-Layer Reference Model --------------------------------
+
+const OSI_CODE = [
+  "7. Application: User interface, network APIs (HTTP, DNS, FTP)",
+  "6. Presentation: Encryption (TLS), Data compression, Format translation",
+  "5. Session: Dialog coordination, checkpoint recovery, session tokens",
+  "4. Transport: End-to-end segmentation, Flow control (TCP/UDP, Ports)",
+  "3. Network: Logical addressing, Packet routing across subnets (IP)",
+  "2. Data Link: Physical hop framing, MAC addressing, Error detection (CRC)",
+  "1. Physical: Raw bitstream transmission over copper, fiber or wireless",
+];
+
+function osiModel(p: LayerRunParams): LayerProgram {
+  const steps: LayerStep[] = [];
+  const message = p.message || "HELLO";
+  const HEADERS = headersFor(p);
+
+  // Step 0: Overview
+  steps.push({
+    lanes: LANES.map((l) => ({ ...l, state: "idle" })),
+    at: 7,
+    side: "sender",
+    headers: [],
+    payload: message,
+    description: "The Open Systems Interconnection (OSI) 7-layer reference model defines standard network communication into seven modular abstraction layers, ensuring interoperability across diverse vendor hardware.",
+    codeLines: [1, 2, 3, 4, 5, 6, 7],
+  });
+
+  // Layer-by-layer tour
+  for (const lane of LANES) {
+    const n = lane.n;
+    const h = HEADERS[n];
+    steps.push({
+      lanes: LANES.map((l) => ({ ...l, state: l.n === n ? "active" : l.n > n ? "done" : "idle" })),
+      at: n,
+      side: "sender",
+      headers: h ? [h] : [],
+      payload: message,
+      description: `Layer ${n} — ${lane.name} Layer: ${lane.role}. Unit of data is called a '${lane.pduName}'. Associated devices and protocols are matched to this layer boundary.`,
+      codeLines: [8 - n],
+      message: { text: `Layer ${n}: ${lane.name} (${lane.pduName})`, tone: "info" },
+    });
+  }
+
+  return {
+    steps,
+    title: "OSI 7-Layer Reference Architecture",
+    pseudocode: OSI_CODE,
+    stats: [
+      { label: "Standard", value: "ISO/IEC 7498-1", tone: "signal" },
+      { label: "Layers", value: "7 Layers", tone: "mint" },
+      { label: "Model Type", value: "Theoretical Reference", tone: "amber" },
+      { label: "PDUs", value: "Data → Seg → Pkt → Frame → Bits", tone: "signal" },
+    ],
+  };
+}
+
+// --- operation: TCP/IP 4-Layer Architecture --------------------------------
+
+const TCPIP_CODE = [
+  "4. Application (OSI 7,6,5): HTTP, DNS, SSH, TLS, SMTP",
+  "3. Transport   (OSI 4):     TCP (Reliable, Ports) / UDP (Datagram)",
+  "2. Internet    (OSI 3):     IPv4, IPv6, ICMP, Routing",
+  "1. Network Access (OSI 2,1): Ethernet, Wi-Fi, Fiber, Physical NIC",
+];
+
+const TCPIP_LANES: Omit<LayerLane, "state">[] = [
+  { n: 4, name: "Application", role: "combines user protocols, formatting, encryption & session state (OSI 7, 6, 5)", pduName: "Data / Message" },
+  { n: 3, name: "Transport", role: "manages host-to-host streams, port multiplexing and congestion (OSI 4)", pduName: "Segment (TCP) / Datagram (UDP)" },
+  { n: 2, name: "Internet", role: "routes packets across independent network boundaries using IP (OSI 3)", pduName: "IP Packet" },
+  { n: 1, name: "Network Access", role: "delivers frames across physical hardware links and signals (OSI 2, 1)", pduName: "Frame / Bits" },
+];
+
+function tcpIpModel(p: LayerRunParams): LayerProgram {
+  const steps: LayerStep[] = [];
+  const message = p.message || "HELLO";
+  const tcpHeader: PduHeader = { id: "TCP", label: "TCP", tone: "amber", note: `Port ${p.srcPort} → ${p.dstPort}` };
+  const ipHeader: PduHeader = { id: "IP", label: "IP", tone: "signal", note: `${p.srcIp} → ${p.dstIp}` };
+  const ethHeader: PduHeader = { id: "ETH", label: "ETH", tone: "mint", note: "MAC addressing + FCS" };
+
+  steps.push({
+    lanes: TCPIP_LANES.map((l) => ({ ...l, state: "idle" })),
+    at: 4,
+    side: "sender",
+    headers: [],
+    payload: message,
+    description: "The TCP/IP model (DoD / DARPA Internet Architecture) is the practical 4-layer foundation of the modern Internet. Rather than rigid 7 layers, it collapses presentation/session into Application and physical/data link into Network Access.",
+    codeLines: [1, 2, 3, 4],
+  });
+
+  // Step 4: Application
+  steps.push({
+    lanes: TCPIP_LANES.map((l) => ({ ...l, state: l.n === 4 ? "active" : "idle" })),
+    at: 4,
+    side: "sender",
+    headers: [],
+    payload: message,
+    description: "Layer 4 (Application): Handles application-level protocols like HTTP/3, DNS, and TLS directly in user space without separate presentation or session layers.",
+    codeLines: [1],
+  });
+
+  // Step 3: Transport
+  steps.push({
+    lanes: TCPIP_LANES.map((l) => ({ ...l, state: l.n === 3 ? "active" : l.n > 3 ? "done" : "idle" })),
+    at: 3,
+    side: "sender",
+    headers: [tcpHeader],
+    payload: message,
+    description: `Layer 3 (Transport): TCP adds ports (${p.srcPort} → ${p.dstPort}), sequence numbers, flow control window, and checksums for reliable end-to-end delivery.`,
+    codeLines: [2],
+  });
+
+  // Step 2: Internet
+  steps.push({
+    lanes: TCPIP_LANES.map((l) => ({ ...l, state: l.n === 2 ? "active" : l.n > 2 ? "done" : "idle" })),
+    at: 2,
+    side: "sender",
+    headers: [ethHeader, ipHeader, tcpHeader],
+    payload: message,
+    description: `Layer 2 (Internet): IP encapsulates the segment with logical addressing (${p.srcIp} → ${p.dstIp}) and TTL. This is the universal internetworking glue.`,
+    codeLines: [3],
+  });
+
+  // Step 1: Network Access
+  steps.push({
+    lanes: TCPIP_LANES.map((l) => ({ ...l, state: l.n === 1 ? "active" : "done" })),
+    at: 1,
+    side: "sender",
+    headers: [ethHeader, ipHeader, tcpHeader],
+    payload: message,
+    trailer: FCS,
+    bits: "01001000 01000101 01001100 01001100 01001111",
+    description: "Layer 1 (Network Access): Encompasses device drivers, Ethernet MAC framing, and physical transceiver serialization onto copper, glass or radio waves.",
+    codeLines: [4],
+    message: { text: "TCP/IP 4-Layer Stack complete · Ready for wire", tone: "ok" },
+  });
+
+  return {
+    steps,
+    title: "TCP/IP 4-Layer Internet Architecture",
+    pseudocode: TCPIP_CODE,
+    stats: [
+      { label: "Architecture", value: "DARPA / IETF", tone: "signal" },
+      { label: "Layers", value: "4 Layers", tone: "mint" },
+      { label: "Model Type", value: "Practical Internet Standard", tone: "mint" },
+      { label: "Core Protocol", value: "TCP/IP & UDP/IP", tone: "signal" },
+    ],
+  };
+}
+
+export type LayerOp = "osiModel" | "encapsulation" | "tcpIpModel";
 
 export function runLayerOperation(op: LayerOp, p: LayerRunParams): LayerProgram {
-  void op;
-  return encapsulation(p);
+  switch (op) {
+    case "osiModel":
+      return osiModel(p);
+    case "tcpIpModel":
+      return tcpIpModel(p);
+    case "encapsulation":
+    default:
+      return encapsulation(p);
+  }
 }
+

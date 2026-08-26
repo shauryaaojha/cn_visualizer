@@ -181,12 +181,21 @@ export interface NetStep extends BaseStep {
 export type NetProgram = Program<NetStep>;
 
 export type NetOperationId =
+  | "introNetwork"
+  | "typePan"
+  | "typeLan"
+  | "typeMan"
+  | "typeWan"
+  | "typeComparison"
   | "topoBus"
   | "topoStar"
   | "topoRing"
   | "topoMesh"
   | "topoHybrid"
-  | "topoFailure";
+  | "topoFailure"
+  | "switchCircuit"
+  | "switchPacket"
+  | "switchComparison";
 
 // ===========================================================================
 // ENGINE 2 — layerEngine  ·  LayerCanvas
@@ -296,3 +305,100 @@ export type SignalOperationId =
   | "transmissionDelay"
   | "propagationDelay"
   | "queuingProcessing";
+
+// ===========================================================================
+// ENGINE 4 — mediaEngine  ·  MediaCanvas
+//
+// Physical transmission media visualizations: waveforms, twisted-pair noise
+// cancellation, coaxial cutaway shields, fiber optic Total Internal Reflection,
+// unguided EM radiation modes, and comparative multi-axis radar benchmarks.
+// ===========================================================================
+
+export type MediaKind =
+  | "waveform"
+  | "twistedPair"
+  | "coaxial"
+  | "rayOptics"
+  | "antennaWave"
+  | "comparisonRadar";
+
+export interface MediaWaveform {
+  signalType: "nrz" | "manchester" | "am" | "fm" | "qam";
+  bits: string;
+  waveSvgPath: string;
+  clockSvgPath: string;
+}
+
+export interface MediaTwistedPair {
+  twistRate: number; // twists per meter
+  noiseLevel: number; // 0-1
+  wireAPath: string;
+  wireBPath: string;
+  diffOutput: string;
+  cancelled: boolean;
+}
+
+export interface MediaCoaxial {
+  layers: {
+    name: string;
+    material: string;
+    purpose: string;
+    radius: number;
+    color: string;
+  }[];
+  activeLayerIndex: number;
+}
+
+export interface MediaRayOptics {
+  coreIndex: number;
+  claddingIndex: number;
+  criticalAngleDeg: number;
+  launchAngleDeg: number;
+  isTIR: boolean;
+  rays: { x1: number; y1: number; x2: number; y2: number; color: string }[];
+  mode: "smf" | "mmf";
+}
+
+export interface MediaAntennaWave {
+  type: "ground" | "sky" | "space" | "microwave" | "infrared";
+  frequencyLabel: string;
+  rangeLabel: string;
+  rainAttenuationDb?: number;
+  reflected?: boolean;
+  absorbed?: boolean;
+}
+
+export interface MediaComparisonRadar {
+  media: {
+    name: string;
+    bandwidth: number; // 1-10
+    maxDistance: number; // 1-10
+    emiImmunity: number; // 1-10
+    lowCost: number; // 1-10 (higher is cheaper/better)
+    security: number; // 1-10
+    color: string;
+  }[];
+}
+
+export interface MediaStep extends BaseStep {
+  kind: MediaKind;
+  waveform?: MediaWaveform;
+  twistedPair?: MediaTwistedPair;
+  coaxial?: MediaCoaxial;
+  rayOptics?: MediaRayOptics;
+  antennaWave?: MediaAntennaWave;
+  comparisonRadar?: MediaComparisonRadar;
+}
+
+export type MediaProgram = Program<MediaStep>;
+
+export type MediaOperationId =
+  | "signalBasics"
+  | "guidedTwistedPair"
+  | "guidedCoaxial"
+  | "guidedFiber"
+  | "unguidedRadio"
+  | "unguidedMicrowave"
+  | "unguidedInfrared"
+  | "mediaComparison";
+

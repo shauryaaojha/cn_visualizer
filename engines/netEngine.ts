@@ -628,11 +628,542 @@ function singleTopo(spec: TopoSpec, from: string, to: string, cutId: string | nu
   };
 }
 
+// --- operation: Introduction to Networks (Packet Lifecycle) ----------------
+
+const INTRO_CODE = [
+  "Alice creates message M = 'HELLO'",
+  "Segment into packets: P1='HE', P2='LL', P3='O'",
+  "Attach headers: [Src:Alice, Dst:Bob, Seq:i]",
+  "NIC serializes bits onto wire to Switch",
+  "Switch stores packet in buffer & looks up MAC table",
+  "Switch forwards packet on output port to Bob",
+  "Bob verifies FCS checksum & reassembles message",
+];
+
+function introNetwork(cutId: string | null): NetProgram {
+  const steps: NetStep[] = [];
+  const nodes: NetNode[] = [
+    N("Alice", "Alice", "host", 15, 50),
+    N("SW", "Switch", "switch", 50, 50),
+    N("Bob", "Bob", "host", 85, 50),
+  ];
+  const links: NetLink[] = [
+    L("l1", "Alice", "SW"),
+    L("l2", "SW", "Bob"),
+  ];
+
+  if (cutId === "l1") links[0].state = "down";
+  if (cutId === "l2") links[1].state = "down";
+
+  // Step 1: Idle
+  steps.push({
+    panels: [{ id: "intro", label: "Network Communication", nodes: [...nodes], links: [...links], packets: [] }],
+    description: "Alice wants to send the message 'HELLO' to Bob over the network. Networks transfer information in discrete, structured chunks called packets rather than one continuous unmanaged stream.",
+    codeLines: [1],
+    strip: { label: "Payload Buffer", chips: [{ text: "H", state: "active" }, { text: "E", state: "active" }, { text: "L", state: "active" }, { text: "L", state: "active" }, { text: "O", state: "active" }] },
+  });
+
+  // Step 2: Packetization
+  steps.push({
+    panels: [{ id: "intro", label: "Network Communication", nodes: [{ ...nodes[0], state: "active" }, nodes[1], nodes[2]], links: [...links], packets: [] }],
+    description: "Host A (Alice) segments the message into 3 numbered packets (P1: 'HE', P2: 'LL', P3: 'O') and clamps on source/destination network headers.",
+    codeLines: [2, 3],
+    strip: { label: "Created Packets", chips: [{ text: "P1:[HE]", state: "done" }, { text: "P2:[LL]", state: "done" }, { text: "P3:[O]", state: "done" }] },
+  });
+
+  if (cutId === "l1") {
+    steps.push({
+      panels: [{ id: "intro", label: "Network Communication", nodes: [{ ...nodes[0], state: "active" }, nodes[1], nodes[2]], links: [{ ...links[0], state: "down" }, links[1]], packets: [{ id: "p1", label: "P1", linkId: "l1", t: 0.3, kind: "data", state: "dropped" }] }],
+      description: "Alice's NIC attempts to push P1 onto Link 1, but the physical wire is severed! The electrical signal is lost and transmission fails immediately.",
+      codeLines: [4],
+      message: FAIL("Transmission failed: Link Alice-Switch is down"),
+    });
+    return {
+      steps,
+      title: "What Is a Network? — Packet Transmission",
+      pseudocode: INTRO_CODE,
+      stats: [{ label: "Status", value: "Link Severed", tone: "coral" }, { label: "Payload", value: "5 Bytes" }],
+    };
+  }
+
+  // Step 3: P1 to switch
+  steps.push({
+    panels: [{ id: "intro", label: "Network Communication", nodes: [{ ...nodes[0], state: "visited" }, { ...nodes[1], state: "active" }, nodes[2]], links: [{ ...links[0], state: "active" }, links[1]], packets: [{ id: "p1", label: "P1", linkId: "l1", t: 0.9, kind: "data", state: "flying" }] }],
+    description: "Packet P1 serializes onto the wire as electrical/optical signals and travels to the intermediate switch at ~200,000 km/s.",
+    codeLines: [4],
+  });
+
+  // Step 4: Switch store-and-forward + P2 serialization
+  steps.push({
+    panels: [{ id: "intro", label: "Network Communication", nodes: [nodes[0], { ...nodes[1], state: "active" }, nodes[2]], links: [links[0], { ...links[1], state: "active" }], packets: [{ id: "p1", label: "P1", linkId: "l2", t: 0.4, kind: "data", state: "flying" }, { id: "p2", label: "P2", linkId: "l1", t: 0.5, kind: "data", state: "flying" }] }],
+    description: "The Switch receives P1, stores it in its FIFO buffer, inspects the destination MAC address, and forwards it to Bob. Simultaneously, Alice pushes P2 onto Link 1 (pipelined transmission).",
+    codeLines: [5, 6],
+  });
+
+  if (cutId === "l2") {
+    steps.push({
+      panels: [{ id: "intro", label: "Network Communication", nodes: [nodes[0], { ...nodes[1], state: "active" }, { ...nodes[2], state: "failed" }], links: [links[0], { ...links[1], state: "down" }], packets: [{ id: "p1", label: "P1", linkId: "l2", t: 0.5, kind: "data", state: "dropped" }] }],
+      description: "P1 leaves the switch for Bob, but Link 2 is severed. The frame drops in transit. Bob never receives the packet and no ACK is generated.",
+      codeLines: [6],
+      message: FAIL("Packet dropped on severed link to Bob"),
+    });
+    return {
+      steps,
+      title: "What Is a Network? — Packet Transmission",
+      pseudocode: INTRO_CODE,
+      stats: [{ label: "Status", value: "Partitioned", tone: "coral" }, { label: "Packets Lost", value: "3", tone: "coral" }],
+    };
+  }
+
+  // Step 5: P1 arrives, P2 to switch, P3 leaves Alice
+  steps.push({
+    panels: [{ id: "intro", label: "Network Communication", nodes: [nodes[0], nodes[1], { ...nodes[2], state: "active" }], links: [{ ...links[0], state: "active" }, { ...links[1], state: "active" }], packets: [{ id: "p1", label: "P1", linkId: "l2", t: 1.0, kind: "data", state: "delivered" }, { id: "p2", label: "P2", linkId: "l2", t: 0.3, kind: "data", state: "flying" }, { id: "p3", label: "P3", linkId: "l1", t: 0.6, kind: "data", state: "flying" }] }],
+    description: "Bob receives P1 and verifies the Frame Check Sequence (CRC-32). The payload 'HE' is placed in Bob's reassembly buffer.",
+    codeLines: [7],
+    strip: { label: "Bob's Buffer", chips: [{ text: "P1:HE", state: "matched" }] },
+  });
+
+  // Step 6: All packets arrived and reassembled
+  steps.push({
+    panels: [{ id: "intro", label: "Network Communication", nodes: [{ ...nodes[0], state: "idle" }, nodes[1], { ...nodes[2], state: "found" }], links: [...links], packets: [] }],
+    description: "All 3 packets have arrived safely. Bob strips the headers, verifies sequencing (P1 + P2 + P3), and reconstructs the complete message 'HELLO' for the application layer.",
+    codeLines: [7],
+    strip: { label: "Reassembled Message", chips: [{ text: "H", state: "done" }, { text: "E", state: "done" }, { text: "L", state: "done" }, { text: "L", state: "done" }, { text: "O", state: "done" }] },
+    message: OK("Message delivered & reassembled: 'HELLO'"),
+  });
+
+  return {
+    steps,
+    title: "What Is a Network? — End-to-End Packet Flow",
+    pseudocode: INTRO_CODE,
+    stats: [
+      { label: "Payload", value: "5 Bytes", tone: "signal" },
+      { label: "Packets", value: "3", tone: "amber" },
+      { label: "Overhead", value: "192 Bytes", tone: "signal" },
+      { label: "Outcome", value: "100% Delivered", tone: "mint" },
+    ],
+  };
+}
+
+// --- operations: Network Types (PAN, LAN, MAN, WAN, Scale Comparison) -------
+
+const TYPE_CODE = [
+  "identify scale: PAN (<10m) | LAN (<1km) | MAN (<50km) | WAN (>1000km)",
+  "configure endpoints and intermediate routing infrastructure",
+  "transmit data frame across physical domain",
+  "observe propagation latency and hop-by-hop forwarding",
+];
+
+function typePan(): NetProgram {
+  const steps: NetStep[] = [];
+  const nodes: NetNode[] = [
+    N("Phone", "Phone", "host", 50, 50),
+    N("Watch", "Watch", "host", 28, 30),
+    N("Buds", "Earbuds", "host", 72, 30),
+    N("Laptop", "Laptop", "host", 30, 72),
+    N("Scale", "Scale", "host", 70, 72),
+  ];
+  const links: NetLink[] = [
+    L("l1", "Phone", "Watch"),
+    L("l2", "Phone", "Buds"),
+    L("l3", "Phone", "Laptop"),
+    L("l4", "Phone", "Scale"),
+  ];
+
+  steps.push({
+    panels: [{ id: "pan", label: "Personal Area Network (PAN)", sub: "Range: ~10m · Bluetooth 5.3 / Zigbee · Piconet", nodes: [...nodes], links: [...links], packets: [] }],
+    description: "A Personal Area Network (PAN) interconnects devices centered around a single person within a typical range of 10 meters. The smartphone acts as the master node in a Bluetooth piconet.",
+    codeLines: [1, 2],
+  });
+
+  steps.push({
+    panels: [{ id: "pan", label: "Personal Area Network (PAN)", sub: "Audio & Sensor Sync Active", nodes: [{ ...nodes[0], state: "active" }, { ...nodes[1], state: "active" }, { ...nodes[2], state: "active" }, nodes[3], nodes[4]], links: [{ ...links[0], state: "active" }, { ...links[1], state: "active" }, links[2], links[3]], packets: [{ id: "p1", label: "HR", linkId: "l1", t: 0.6, kind: "data", state: "flying" }, { id: "p2", label: "Audio", linkId: "l2", t: 0.6, kind: "data", state: "flying" }] }],
+    description: "Short-range 2.4 GHz ultra-low-power radio waves transmit biometric data from the smartwatch and high-definition audio to wireless earbuds with negligible latency (~2 ms).",
+    codeLines: [3, 4],
+    message: OK("BLE synchronized · 2 ms latency"),
+  });
+
+  return {
+    steps,
+    title: "Personal Area Network (PAN)",
+    pseudocode: TYPE_CODE,
+    stats: [
+      { label: "Coverage", value: "< 10 meters", tone: "signal" },
+      { label: "Technology", value: "BLE / Zigbee", tone: "amber" },
+      { label: "Latency", value: "~2 ms", tone: "mint" },
+      { label: "Data Rate", value: "1–24 Mbps", tone: "signal" },
+    ],
+  };
+}
+
+function typeLan(): NetProgram {
+  const steps: NetStep[] = [];
+  const nodes: NetNode[] = [
+    N("PC1", "PC-1", "host", 20, 25),
+    N("PC2", "PC-2", "host", 20, 75),
+    N("SW", "L2 Switch", "switch", 50, 50),
+    N("Printer", "Printer", "host", 80, 25),
+    N("Server", "Server", "server", 80, 75),
+  ];
+  const links: NetLink[] = [
+    L("l1", "PC1", "SW"),
+    L("l2", "PC2", "SW"),
+    L("l3", "SW", "Printer"),
+    L("l4", "SW", "Server"),
+  ];
+
+  steps.push({
+    panels: [{ id: "lan", label: "Local Area Network (LAN)", sub: "Range: ~100m–1km · 1 Gbps Ethernet / Wi-Fi 6", nodes: [...nodes], links: [...links], packets: [] }],
+    description: "A Local Area Network (LAN) connects computers and peripherals within a localized geographical area like an office, school lab, or home. All devices share a single administrative domain.",
+    codeLines: [1, 2],
+  });
+
+  steps.push({
+    panels: [{ id: "lan", label: "Local Area Network (LAN)", sub: "Unicast Frame Forwarding", nodes: [{ ...nodes[0], state: "active" }, nodes[1], { ...nodes[2], state: "active" }, { ...nodes[3], state: "target" }, nodes[4]], links: [{ ...links[0], state: "active" }, links[1], { ...links[2], state: "active" }, links[3]], packets: [{ id: "p1", label: "PrintDoc", linkId: "l1", t: 0.8, kind: "data", state: "flying" }] }],
+    description: "PC-1 sends a 1500-byte print frame to the Network Printer. The Layer 2 Switch checks its MAC address lookup table and forwards the frame only on the printer's port without broadcasting.",
+    codeLines: [3, 4],
+    message: OK("1 Gbps Ethernet · Dedicated switch bandwidth"),
+  });
+
+  return {
+    steps,
+    title: "Local Area Network (LAN)",
+    pseudocode: TYPE_CODE,
+    stats: [
+      { label: "Coverage", value: "< 1 km", tone: "signal" },
+      { label: "Bandwidth", value: "1–10 Gbps", tone: "signal" },
+      { label: "Latency", value: "< 0.5 ms", tone: "mint" },
+      { label: "Domain", value: "Single Broadcast", tone: "amber" },
+    ],
+  };
+}
+
+function typeMan(): NetProgram {
+  const steps: NetStep[] = [];
+  const nodes: NetNode[] = [
+    N("CampusN", "North Campus", "router", 25, 25),
+    N("Hospital", "City Hospital", "router", 75, 25),
+    N("Govt", "Civic Center", "router", 25, 75),
+    N("DataCenter", "Data Center", "server", 75, 75),
+  ];
+  const links: NetLink[] = [
+    L("l1", "CampusN", "Hospital", true),
+    L("l2", "Hospital", "DataCenter", true),
+    L("l3", "DataCenter", "Govt", true),
+    L("l4", "Govt", "CampusN", true),
+  ];
+
+  steps.push({
+    panels: [{ id: "man", label: "Metropolitan Area Network (MAN)", sub: "Range: 5–50 km · City-wide Dark Fiber Optical Ring", nodes: [...nodes], links: [...links], packets: [] }],
+    description: "A Metropolitan Area Network (MAN) spans an entire city or metropolitan region, interconnecting multiple branch offices, universities, and government buildings via high-speed optical fiber trunks.",
+    codeLines: [1, 2],
+  });
+
+  steps.push({
+    panels: [{ id: "man", label: "Metropolitan Area Network (MAN)", sub: "Inter-site Optical Transmission", nodes: [{ ...nodes[0], state: "active" }, nodes[1], nodes[2], { ...nodes[3], state: "target" }], links: [{ ...links[0], state: "active" }, { ...links[1], state: "active" }, links[2], links[3]], packets: [{ id: "p1", label: "Records", linkId: "l1", t: 0.9, kind: "data", state: "flying" }] }],
+    description: "North Campus streams multi-gigabyte research datasets to the centralized City Data Center over high-capacity DWDM optical fiber rings with ~5 ms latency.",
+    codeLines: [3, 4],
+    message: OK("MAN 10 Gbps Metro Ring · 5 ms latency"),
+  });
+
+  return {
+    steps,
+    title: "Metropolitan Area Network (MAN)",
+    pseudocode: TYPE_CODE,
+    stats: [
+      { label: "Coverage", value: "5–50 km (City)", tone: "signal" },
+      { label: "Medium", value: "DWDM Fiber Ring", tone: "amber" },
+      { label: "Latency", value: "2–10 ms", tone: "mint" },
+      { label: "Bandwidth", value: "10–100 Gbps", tone: "signal" },
+    ],
+  };
+}
+
+function typeWan(): NetProgram {
+  const steps: NetStep[] = [];
+  const nodes: NetNode[] = [
+    N("NYC", "New York", "router", 15, 45),
+    N("LON", "London", "router", 40, 30),
+    N("MUM", "Mumbai", "router", 65, 65),
+    N("TYO", "Tokyo", "router", 88, 40),
+  ];
+  const links: NetLink[] = [
+    L("l1", "NYC", "LON", true),
+    L("l2", "LON", "MUM", true),
+    L("l3", "MUM", "TYO", true),
+    L("l4", "NYC", "TYO", true),
+  ];
+
+  steps.push({
+    panels: [{ id: "wan", label: "Wide Area Network (WAN)", sub: "Range: Global (10,000+ km) · Undersea Cables & Satellite Links", nodes: [...nodes], links: [...links], packets: [] }],
+    description: "A Wide Area Network (WAN) spans countries, continents, or the entire globe. The Internet is the world's largest public WAN, built from interconnected Autonomous Systems (ISPs).",
+    codeLines: [1, 2],
+  });
+
+  steps.push({
+    panels: [{ id: "wan", label: "Wide Area Network (WAN)", sub: "Transcontinental Routing via Submarine Fiber", nodes: [{ ...nodes[0], state: "active" }, { ...nodes[1], state: "visited" }, nodes[2], { ...nodes[3], state: "target" }], links: [{ ...links[0], state: "active" }, links[1], links[2], links[3]], packets: [{ id: "p1", label: "BGP-Packet", linkId: "l1", t: 0.8, kind: "data", state: "flying" }] }],
+    description: "A packet leaves New York, crosses the Atlantic Ocean via transatlantic submarine fiber (6,000 km) to London, then routes onwards to Tokyo with ~150 ms round-trip propagation time.",
+    codeLines: [3, 4],
+    message: OK("Global WAN · Transoceanic propagation ~150 ms"),
+  });
+
+  return {
+    steps,
+    title: "Wide Area Network (WAN)",
+    pseudocode: TYPE_CODE,
+    stats: [
+      { label: "Coverage", value: "Global / Multi-continent", tone: "signal" },
+      { label: "Infrastructure", value: "Subsea Fiber / Satellite", tone: "amber" },
+      { label: "Latency", value: "100–300 ms", tone: "coral" },
+      { label: "Ownership", value: "Tier 1 ISPs / Public", tone: "signal" },
+    ],
+  };
+}
+
+function typeComparison(): NetProgram {
+  const steps: NetStep[] = [];
+  const pPan: NetPanel = {
+    id: "p1",
+    label: "1. PAN",
+    sub: "< 10m · Bluetooth",
+    nodes: [N("A", "Phone", "host", 50, 50), N("B", "Watch", "host", 50, 20)],
+    links: [L("l1", "A", "B")],
+    packets: [{ id: "p", label: "BLE", linkId: "l1", t: 0.6, kind: "data", state: "flying" }],
+  };
+  const pLan: NetPanel = {
+    id: "p2",
+    label: "2. LAN",
+    sub: "< 1km · Switch",
+    nodes: [N("A", "PC", "host", 25, 50), N("S", "SW", "switch", 50, 50), N("B", "Server", "server", 75, 50)],
+    links: [L("l1", "A", "S"), L("l2", "S", "B")],
+    packets: [{ id: "p", label: "Eth", linkId: "l2", t: 0.6, kind: "data", state: "flying" }],
+  };
+  const pMan: NetPanel = {
+    id: "p3",
+    label: "3. MAN",
+    sub: "5–50km · City Fiber",
+    nodes: [N("A", "Site A", "router", 25, 30), N("B", "Site B", "router", 75, 70)],
+    links: [L("l1", "A", "B", true)],
+    packets: [{ id: "p", label: "Fiber", linkId: "l1", t: 0.6, kind: "data", state: "flying" }],
+  };
+  const pWan: NetPanel = {
+    id: "p4",
+    label: "4. WAN",
+    sub: "Global · Subsea",
+    nodes: [N("A", "NYC", "router", 20, 50), N("B", "London", "router", 80, 50)],
+    links: [L("l1", "A", "B", true)],
+    packets: [{ id: "p", label: "WAN", linkId: "l1", t: 0.6, kind: "data", state: "flying" }],
+  };
+
+  steps.push({
+    panels: [pPan, pLan, pMan, pWan],
+    description: "Zooming out from a personal workspace to the whole planet: Geographic radius increases by 6 orders of magnitude ($10^1\\text{ m} \\to 10^7\\text{ m}$), latency jumps from 1 ms to 200 ms, and network ownership shifts from private to global telecom consortiums.",
+    codeLines: [1, 2, 3, 4],
+    message: OK("PAN vs LAN vs MAN vs WAN scale comparison"),
+  });
+
+  return {
+    steps,
+    title: "Network Scale Comparison: PAN to WAN",
+    pseudocode: TYPE_CODE,
+    stats: [
+      { label: "PAN", value: "<10m · 2ms", tone: "signal" },
+      { label: "LAN", value: "<1km · 0.5ms", tone: "mint" },
+      { label: "MAN", value: "50km · 5ms", tone: "amber" },
+      { label: "WAN", value: "Global · 150ms", tone: "coral" },
+    ],
+  };
+}
+
+// --- operations: Switching Techniques ---------------------------------------
+
+const SWITCH_CODE = [
+  "-- CIRCUIT SWITCHING --",
+  "1. Setup Phase: reserve end-to-end dedicated channel",
+  "2. Data Phase: stream bits continuously (no headers/queuing)",
+  "3. Teardown Phase: release physical channel capacity",
+  "",
+  "-- PACKET SWITCHING --",
+  "1. Chop message into packets with headers (Src, Dst, Seq)",
+  "2. Forward hop-by-hop across dynamically chosen routes",
+  "3. Reassemble in buffer upon destination arrival",
+];
+
+function switchCircuit(): NetProgram {
+  const steps: NetStep[] = [];
+  const nodes: NetNode[] = [
+    N("Src", "Caller", "host", 12, 50),
+    N("S1", "SW-1", "switch", 35, 30),
+    N("S2", "SW-2", "switch", 35, 70),
+    N("S3", "SW-3", "switch", 65, 30),
+    N("S4", "SW-4", "switch", 65, 70),
+    N("Dst", "Receiver", "host", 88, 50),
+  ];
+  const links: NetLink[] = [
+    L("l1", "Src", "S1"),
+    L("l2", "Src", "S2"),
+    L("l3", "S1", "S3"),
+    L("l4", "S2", "S4"),
+    L("l5", "S3", "Dst"),
+    L("l6", "S4", "Dst"),
+  ];
+
+  // Phase 1: Setup Probe
+  steps.push({
+    panels: [{ id: "circ", label: "Circuit Switching — Phase 1: Call Setup", sub: "Establishing Dedicated Physical Channel", nodes: [{ ...nodes[0], state: "active" }, nodes[1], nodes[2], nodes[3], nodes[4], nodes[5]], links: [...links], packets: [{ id: "setup", label: "SETUP", linkId: "l1", t: 0.8, kind: "control", state: "flying" }] }],
+    description: "Phase 1 (Circuit Setup): The caller sends a setup probe across the switch matrix to find and reserve dedicated physical bandwidth along path Src → SW-1 → SW-3 → Dst.",
+    codeLines: [1, 2],
+  });
+
+  // Phase 2: Channel Reserved
+  const resLinks: NetLink[] = [
+    { ...links[0], state: "reserved" },
+    links[1],
+    { ...links[2], state: "reserved" },
+    links[3],
+    { ...links[4], state: "reserved" },
+    links[5],
+  ];
+  steps.push({
+    panels: [{ id: "circ", label: "Circuit Switching — Phase 2: Continuous Data Stream", sub: "Locked Channel: 100% Dedicated Bandwidth", nodes: [{ ...nodes[0], state: "found" }, { ...nodes[1], state: "active" }, nodes[2], { ...nodes[3], state: "active" }, nodes[4], { ...nodes[5], state: "found" }], links: resLinks, packets: [{ id: "s1", label: "STREAM", linkId: "l3", t: 0.5, kind: "data", state: "flying" }] }],
+    description: "Phase 2 (Data Transfer): With the circuit locked, data streams continuously with zero header overhead and zero queue jitter. However, if the caller pauses, the reserved capacity sits 100% idle and wasted.",
+    codeLines: [3],
+    message: OK("Dedicated 64 kbps circuit active · Zero jitter"),
+  });
+
+  // Phase 3: Teardown
+  steps.push({
+    panels: [{ id: "circ", label: "Circuit Switching — Phase 3: Teardown", sub: "Release Channel Resources", nodes: [...nodes], links: [...links], packets: [{ id: "rel", label: "RELEASE", linkId: "l5", t: 0.8, kind: "control", state: "flying" }] }],
+    description: "Phase 3 (Teardown): Once transmission concludes, a RELEASE control signal tears down the reserved circuit, freeing switch cross-connect capacity for other callers.",
+    codeLines: [4],
+  });
+
+  return {
+    steps,
+    title: "Circuit Switching (3-Phase Connection)",
+    pseudocode: SWITCH_CODE,
+    stats: [
+      { label: "Reservation", value: "Dedicated", tone: "amber" },
+      { label: "Header Overhead", value: "0% in data phase", tone: "mint" },
+      { label: "Jitter", value: "0 ms (Constant)", tone: "mint" },
+      { label: "Bandwidth Waste", value: "High on bursty data", tone: "coral" },
+    ],
+  };
+}
+
+function switchPacket(): NetProgram {
+  const steps: NetStep[] = [];
+  const nodes: NetNode[] = [
+    N("Src", "Sender", "host", 12, 50),
+    N("R1", "Router 1", "router", 35, 30),
+    N("R2", "Router 2", "router", 35, 70),
+    N("R3", "Router 3", "router", 65, 30),
+    N("R4", "Router 4", "router", 65, 70),
+    N("Dst", "Receiver", "host", 88, 50),
+  ];
+  const links: NetLink[] = [
+    L("l1", "Src", "R1"),
+    L("l2", "Src", "R2"),
+    L("l3", "R1", "R3"),
+    L("l4", "R2", "R4"),
+    L("l5", "R3", "Dst"),
+    L("l6", "R4", "Dst"),
+    L("l7", "R1", "R4"),
+  ];
+
+  steps.push({
+    panels: [{ id: "pkt", label: "Packet Switching (Datagram / Statistical Multiplexing)", sub: "Dynamic Route Diversity & Store-and-Forward", nodes: [{ ...nodes[0], state: "active" }, nodes[1], nodes[2], nodes[3], nodes[4], nodes[5]], links: [...links], packets: [] }],
+    description: "In packet switching, the message is divided into independent packets (P1, P2, P3, P4). No connection setup is required. Each packet carries destination routing metadata.",
+    codeLines: [6, 7],
+    strip: { label: "Sender Buffer", chips: [{ text: "P1", state: "active" }, { text: "P2", state: "active" }, { text: "P3", state: "active" }, { text: "P4", state: "active" }] },
+  });
+
+  steps.push({
+    panels: [{ id: "pkt", label: "Packet Switching", sub: "Dynamic Multi-Path Forwarding", nodes: [nodes[0], { ...nodes[1], state: "active" }, { ...nodes[2], state: "active" }, nodes[3], nodes[4], nodes[5]], links: [{ ...links[0], state: "active" }, { ...links[1], state: "active" }, links[2], links[3], links[4], links[5], links[6]], packets: [{ id: "p1", label: "P1", linkId: "l1", t: 0.9, kind: "data", state: "flying" }, { id: "p2", label: "P2", linkId: "l2", t: 0.5, kind: "data", state: "flying" }] }],
+    description: "Packets take divergent paths based on real-time link availability: P1 routes via Router 1 (top path), while P2 routes via Router 2 (bottom path). Statistical multiplexing maximizes wire efficiency.",
+    codeLines: [8],
+  });
+
+  steps.push({
+    panels: [{ id: "pkt", label: "Packet Switching", sub: "Out-of-Order Arrival & Reassembly", nodes: [nodes[0], nodes[1], nodes[2], nodes[3], nodes[4], { ...nodes[5], state: "found" }], links: [...links], packets: [{ id: "p2", label: "P2", linkId: "l6", t: 1.0, kind: "data", state: "delivered" }, { id: "p1", label: "P1", linkId: "l5", t: 0.8, kind: "data", state: "flying" }] }],
+    description: "Packet P2 arrives before P1 due to lower congestion on the bottom route! The receiver buffers P2, waits for P1, and reassembles them in correct numerical order using sequence numbers.",
+    codeLines: [9],
+    strip: { label: "Receiver Reassembly", chips: [{ text: "P2 (Waiting for P1)", state: "pending" }] },
+    message: OK("Reassembled in order: [P1, P2, P3, P4]"),
+  });
+
+  return {
+    steps,
+    title: "Packet Switching (Statistical Multiplexing)",
+    pseudocode: SWITCH_CODE,
+    stats: [
+      { label: "Connection Setup", value: "0 ms (None)", tone: "mint" },
+      { label: "Link Sharing", value: "Statistical Multiplexing", tone: "signal" },
+      { label: "Routing", value: "Dynamic Per-Packet", tone: "amber" },
+      { label: "Efficiency", value: "High on Bursty Traffic", tone: "mint" },
+    ],
+  };
+}
+
+function switchComparison(): NetProgram {
+  const steps: NetStep[] = [];
+  const pCirc: NetPanel = {
+    id: "circ",
+    label: "Circuit Switching",
+    sub: "Setup penalty + locked path",
+    nodes: [N("A1", "A", "host", 20, 50), N("S1", "SW", "switch", 50, 50), N("B1", "B", "host", 80, 50)],
+    links: [{ id: "l1", from: "A1", to: "S1", state: "reserved" }, { id: "l2", from: "S1", to: "B1", state: "reserved" }],
+    packets: [{ id: "p1", label: "Stream", linkId: "l2", t: 0.7, kind: "data", state: "flying" }],
+  };
+  const pPkt: NetPanel = {
+    id: "pkt",
+    label: "Packet Switching",
+    sub: "Instant start + shared wire",
+    nodes: [N("A2", "A", "host", 20, 50), N("R1", "Router", "router", 50, 50), N("B2", "B", "host", 80, 50)],
+    links: [{ id: "l1", from: "A2", to: "R1", state: "active" }, { id: "l2", from: "R1", to: "B2", state: "active" }],
+    packets: [{ id: "p2", label: "P1", linkId: "l2", t: 0.4, kind: "data", state: "flying" }, { id: "p3", label: "P2", linkId: "l1", t: 0.6, kind: "data", state: "flying" }],
+  };
+
+  steps.push({
+    panels: [pCirc, pPkt],
+    description: "Circuit Switching wins on continuous streams (voice calls) because zero headers and zero router queuing occur after setup. Packet Switching wins on typical bursty Internet traffic because multiple users share the wire dynamically without pre-allocation waste.",
+    codeLines: [1, 2, 3, 5, 6, 7, 8, 9],
+    message: OK("Circuit: guaranteed QoS · Packet: 3.8x higher efficiency"),
+  });
+
+  return {
+    steps,
+    title: "Circuit Switching vs Packet Switching Race",
+    pseudocode: SWITCH_CODE,
+    stats: [
+      { label: "Circuit Setup", value: "Required", tone: "coral" },
+      { label: "Packet Setup", value: "Zero Delay", tone: "mint" },
+      { label: "Wire Utilization", value: "3.8× for Packet", tone: "mint" },
+      { label: "Internet Choice", value: "Packet Switching", tone: "signal" },
+    ],
+  };
+}
+
 // --- public surface ---------------------------------------------------------
 
-export type NetOp = "topoBus" | "topoStar" | "topoRing" | "topoMesh" | "topoHybrid" | "topoFailure";
+export type NetOp =
+  | "introNetwork"
+  | "typePan"
+  | "typeLan"
+  | "typeMan"
+  | "typeWan"
+  | "typeComparison"
+  | "topoBus"
+  | "topoStar"
+  | "topoRing"
+  | "topoMesh"
+  | "topoHybrid"
+  | "topoFailure"
+  | "switchCircuit"
+  | "switchPacket"
+  | "switchComparison";
 
-const TOPO_FOR: Record<Exclude<NetOp, "topoFailure">, TopoId> = {
+const TOPO_FOR: Record<string, TopoId> = {
   topoBus: "bus",
   topoStar: "star",
   topoRing: "ring",
@@ -650,7 +1181,7 @@ export interface NetRunParams {
 
 /** The topology behind an op — used by the sidebar to list cuttable links. */
 export function specFor(op: NetOp, hosts: number): TopoSpec | null {
-  if (op === "topoFailure") return null;
+  if (!(op in TOPO_FOR)) return null;
   return BUILDERS[TOPO_FOR[op]](hosts);
 }
 
@@ -678,28 +1209,64 @@ export function suggestedCut(op: NetOp, hosts: number, from: string, to: string)
 }
 
 export function runNetOperation(p: NetRunParams): NetProgram {
-  const hosts = Math.max(MIN_HOSTS, Math.min(MAX_HOSTS, p.hosts));
-  const ids = HOST_IDS.slice(0, hosts);
-  const from = ids.includes(p.from) ? p.from : ids[0];
-  const to = ids.includes(p.to) ? p.to : ids[ids.length - 2] ?? ids[ids.length - 1];
-
-  if (p.op === "topoFailure") return topoFailure(from, to, hosts);
-
-  const spec = BUILDERS[TOPO_FOR[p.op]](hosts);
   const linkDown = p.faults.find((f) => f.kind === "linkDown");
   const cutId = linkDown && "id" in linkDown ? linkDown.id : null;
-  // A cut that no longer exists (host count changed under it) is simply ignored.
-  const valid = cutId && spec.links.some((l) => l.id === cutId) ? cutId : null;
-  return singleTopo(spec, from, to, valid);
+
+  switch (p.op) {
+    case "introNetwork":
+      return introNetwork(cutId);
+    case "typePan":
+      return typePan();
+    case "typeLan":
+      return typeLan();
+    case "typeMan":
+      return typeMan();
+    case "typeWan":
+      return typeWan();
+    case "typeComparison":
+      return typeComparison();
+    case "switchCircuit":
+      return switchCircuit();
+    case "switchPacket":
+      return switchPacket();
+    case "switchComparison":
+      return switchComparison();
+    case "topoFailure": {
+      const hosts = Math.max(MIN_HOSTS, Math.min(MAX_HOSTS, p.hosts));
+      const ids = HOST_IDS.slice(0, hosts);
+      const from = ids.includes(p.from) ? p.from : ids[0];
+      const to = ids.includes(p.to) ? p.to : ids[ids.length - 2] ?? ids[ids.length - 1];
+      return topoFailure(from, to, hosts);
+    }
+    default: {
+      const hosts = Math.max(MIN_HOSTS, Math.min(MAX_HOSTS, p.hosts));
+      const ids = HOST_IDS.slice(0, hosts);
+      const from = ids.includes(p.from) ? p.from : ids[0];
+      const to = ids.includes(p.to) ? p.to : ids[ids.length - 2] ?? ids[ids.length - 1];
+      const spec = BUILDERS[TOPO_FOR[p.op]](hosts);
+      const valid = cutId && spec.links.some((l) => l.id === cutId) ? cutId : null;
+      return singleTopo(spec, from, to, valid);
+    }
+  }
 }
 
 export const NET_OPERATIONS: { id: NetOp; label: string; icon: string; subpath: string }[] = [
+  { id: "introNetwork", label: "Intro", icon: "share", subpath: "introduction/what-is-a-network" },
+  { id: "typePan", label: "PAN", icon: "watch", subpath: "network-types/pan" },
+  { id: "typeLan", label: "LAN", icon: "home_work", subpath: "network-types/lan" },
+  { id: "typeMan", label: "MAN", icon: "location_city", subpath: "network-types/man" },
+  { id: "typeWan", label: "WAN", icon: "public", subpath: "network-types/wan" },
+  { id: "typeComparison", label: "Scale", icon: "zoom_out_map", subpath: "network-types/scale-comparison" },
   { id: "topoBus", label: "Bus", icon: "horizontal_rule", subpath: "topologies/bus" },
   { id: "topoStar", label: "Star", icon: "star", subpath: "topologies/star" },
   { id: "topoRing", label: "Ring", icon: "radio_button_unchecked", subpath: "topologies/ring" },
   { id: "topoMesh", label: "Mesh", icon: "hub", subpath: "topologies/mesh" },
   { id: "topoHybrid", label: "Hybrid", icon: "account_tree", subpath: "topologies/hybrid" },
   { id: "topoFailure", label: "Failure", icon: "link_off", subpath: "topologies/failure-comparison" },
+  { id: "switchCircuit", label: "Circuit", icon: "settings_input_component", subpath: "switching/circuit-switching" },
+  { id: "switchPacket", label: "Packet", icon: "grid_view", subpath: "switching/packet-switching" },
+  { id: "switchComparison", label: "Circuit vs Packet", icon: "compare_arrows", subpath: "switching/circuit-vs-packet" },
 ];
 
 export type { CellState };
+

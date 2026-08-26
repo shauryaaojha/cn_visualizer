@@ -266,9 +266,267 @@ function bandwidthVsLatency(p: SignalRunParams): SignalProgram {
   };
 }
 
-export type SignalOp = "bandwidthVsLatency";
+// --- operation: Transmission Delay (L / R) ---------------------------------
+
+const TRANS_CODE = [
+  "Transmission Delay d_trans = L / R",
+  "  L = packet length in bits (e.g. 1500 B * 8 = 12000 bits)",
+  "  R = transmission rate of link in bps (e.g. 1 Gbps = 1e9 bps)",
+  "NIC clock serializes bits onto physical wire one by one",
+  "d_trans depends ONLY on packet size and bandwidth (NOT distance)",
+];
+
+function transmissionDelay(p: SignalRunParams): SignalProgram {
+  const pSizeB = p.fileKB * 1024;
+  const bits = pSizeB * 8;
+  const bwA = p.a.bandwidthMbps * 1e6;
+  const bwB = p.b.bandwidthMbps * 1e6;
+  const txA_ms = (bits / bwA) * 1000;
+  const txB_ms = (bits / bwB) * 1000;
+
+  const trackA: SignalTrack = {
+    id: "tx-a",
+    label: `${p.a.label} (${p.a.bandwidthMbps} Mbps)`,
+    sub: `L = ${fmtSize(p.fileKB)} · R = ${p.a.bandwidthMbps} Mbps`,
+    bandwidthMbps: p.a.bandwidthMbps,
+    propagationMs: 0.1,
+    frontT: 1.0,
+    tailT: 0.0,
+    sentBits: bits,
+    totalBits: bits,
+    deliveredBits: bits,
+    elapsedMs: txA_ms,
+    finishedMs: txA_ms,
+    tone: "signal",
+  };
+
+  const trackB: SignalTrack = {
+    id: "tx-b",
+    label: `${p.b.label} (${p.b.bandwidthMbps} Mbps)`,
+    sub: `L = ${fmtSize(p.fileKB)} · R = ${p.b.bandwidthMbps} Mbps`,
+    bandwidthMbps: p.b.bandwidthMbps,
+    propagationMs: 0.1,
+    frontT: 1.0,
+    tailT: 0.0,
+    sentBits: bits,
+    totalBits: bits,
+    deliveredBits: bits,
+    elapsedMs: txB_ms,
+    finishedMs: txB_ms,
+    tone: "amber",
+  };
+
+  const steps: SignalStep[] = [
+    {
+      tracks: [
+        { ...trackA, frontT: 0, tailT: 0, sentBits: 0, deliveredBits: 0, elapsedMs: 0 },
+        { ...trackB, frontT: 0, tailT: 0, sentBits: 0, deliveredBits: 0, elapsedMs: 0 },
+      ],
+      clockMs: 0,
+      description: `Transmission Delay is the time required for the NIC serializer to push all ${bits.toLocaleString()} bits ($L$) onto the wire at transmission rate $R$. It is completely independent of the distance to the destination.`,
+      codeLines: [1, 2, 3],
+    },
+    {
+      tracks: [
+        { ...trackA, frontT: 0.5, tailT: 0, sentBits: bits / 2, deliveredBits: 0, elapsedMs: txA_ms / 2 },
+        { ...trackB, frontT: 0.5, tailT: 0, sentBits: bits / 2, deliveredBits: 0, elapsedMs: txB_ms / 2 },
+      ],
+      clockMs: Math.min(txA_ms, txB_ms) / 2,
+      description: `At 50% progress: The serializer clock pushes bits into the transceiver buffer. Link A ($d_{trans} = ${fmtMs(txA_ms)}$) vs Link B ($d_{trans} = ${fmtMs(txB_ms)}$).`,
+      codeLines: [4],
+    },
+    {
+      tracks: [trackA, trackB],
+      clockMs: Math.max(txA_ms, txB_ms),
+      description: `Transmission complete! All bits have left the transmitter's interface. Formula: $d_{trans} = L / R$. A $10\\times$ bandwidth increase decreases serialization delay by exactly $10\\times$.`,
+      codeLines: [5],
+      message: { text: `Transmission Delay: A = ${fmtMs(txA_ms)}, B = ${fmtMs(txB_ms)}`, tone: "ok" },
+    },
+  ];
+
+  return {
+    steps,
+    title: `Transmission Delay (L / R) — ${fmtSize(p.fileKB)}`,
+    pseudocode: TRANS_CODE,
+    stats: [
+      { label: "Packet L", value: fmtSize(p.fileKB), tone: "signal" },
+      { label: `d_trans (${p.a.label})`, value: fmtMs(txA_ms), tone: "mint" },
+      { label: `d_trans (${p.b.label})`, value: fmtMs(txB_ms), tone: "amber" },
+      { label: "Formula", value: "L / R", tone: "signal" },
+    ],
+  };
+}
+
+// --- operation: Propagation Delay (d / s) -----------------------------------
+
+const PROP_CODE = [
+  "Propagation Delay d_prop = d / s",
+  "  d = physical distance of link in meters",
+  "  s = wave propagation speed in medium (~2e8 m/s in fiber/copper)",
+  "Physical wave travels through matter at speed of light in medium",
+  "d_prop depends ONLY on distance and medium (NOT bandwidth or packet size)",
+];
+
+function propagationDelay(p: SignalRunParams): SignalProgram {
+  const distA_km = p.a.propagationMs * 200; // 200 km per ms in fiber (2e8 m/s)
+  const distB_km = p.b.propagationMs * 200;
+  const propA = p.a.propagationMs;
+  const propB = p.b.propagationMs;
+
+  const trackA: SignalTrack = {
+    id: "prop-a",
+    label: `${p.a.label} (${distA_km.toFixed(0)} km)`,
+    sub: `d = ${distA_km.toFixed(0)} km · s = 200,000 km/s · d_prop = ${fmtMs(propA)}`,
+    bandwidthMbps: 100,
+    propagationMs: propA,
+    frontT: 1.0,
+    tailT: 0.9,
+    sentBits: 12000,
+    totalBits: 12000,
+    deliveredBits: 12000,
+    elapsedMs: propA,
+    finishedMs: propA,
+    tone: "signal",
+  };
+
+  const trackB: SignalTrack = {
+    id: "prop-b",
+    label: `${p.b.label} (${distB_km.toFixed(0)} km)`,
+    sub: `d = ${distB_km.toFixed(0)} km · s = 200,000 km/s · d_prop = ${fmtMs(propB)}`,
+    bandwidthMbps: 100,
+    propagationMs: propB,
+    frontT: 1.0,
+    tailT: 0.9,
+    sentBits: 12000,
+    totalBits: 12000,
+    deliveredBits: 12000,
+    elapsedMs: propB,
+    finishedMs: propB,
+    tone: "violet",
+  };
+
+  const steps: SignalStep[] = [
+    {
+      tracks: [
+        { ...trackA, frontT: 0, tailT: 0, deliveredBits: 0, elapsedMs: 0 },
+        { ...trackB, frontT: 0, tailT: 0, deliveredBits: 0, elapsedMs: 0 },
+      ],
+      clockMs: 0,
+      description: `Propagation Delay is the time required for a physical electromagnetic pulse (light photon or electrical voltage wave) to cross distance $d$ through physical medium at velocity $s$.`,
+      codeLines: [1, 2, 3],
+    },
+    {
+      tracks: [
+        { ...trackA, frontT: 0.6, tailT: 0.5, deliveredBits: 0, elapsedMs: propA * 0.6 },
+        { ...trackB, frontT: 0.6, tailT: 0.5, deliveredBits: 0, elapsedMs: propB * 0.6 },
+      ],
+      clockMs: Math.min(propA, propB) * 0.6,
+      description: `Wavefront propagating along the medium at the speed of light in glass/copper ($s \\approx 2 \\times 10^8\\text{ m/s}$). No bandwidth upgrade can make light travel faster!`,
+      codeLines: [4],
+    },
+    {
+      tracks: [trackA, trackB],
+      clockMs: Math.max(propA, propB),
+      description: `Wavefront hits the receiver! Formula: $d_{prop} = d / s$. Link A: ${fmtMs(propA)}, Link B: ${fmtMs(propB)}. Propagation delay is governed purely by Einstein's speed of light and geometry.`,
+      codeLines: [5],
+      message: { text: `Propagation flight time: A=${fmtMs(propA)}, B=${fmtMs(propB)}`, tone: "ok" },
+    },
+  ];
+
+  return {
+    steps,
+    title: "Propagation Delay (d / s) — Speed of Light in Medium",
+    pseudocode: PROP_CODE,
+    stats: [
+      { label: "Wave Velocity s", value: "200,000 km/s", tone: "signal" },
+      { label: `Distance (${p.a.label})`, value: `${distA_km.toFixed(0)} km`, tone: "mint" },
+      { label: `Distance (${p.b.label})`, value: `${distB_km.toFixed(0)} km`, tone: "amber" },
+      { label: "Formula", value: "d / s", tone: "signal" },
+    ],
+  };
+}
+
+// --- operation: Queuing & Processing Delay ----------------------------------
+
+const QUEUE_CODE = [
+  "1. Packet arrives at Router Ingress Port",
+  "2. Processing Delay d_proc: check bit errors (CRC), IP header lookup",
+  "3. Queuing Delay d_queue: wait in FIFO buffer for link to free",
+  "4. If queue full (Traffic Intensity I = L*lambda/R >= 1): TAIL DROP PACKET",
+  "5. Output interface serializes packet when line is idle",
+];
+
+function queuingProcessing(p: SignalRunParams): SignalProgram {
+  void p;
+  const steps: SignalStep[] = [];
+  const track: SignalTrack = {
+    id: "queue-track",
+    label: "Router Output Interface Queue",
+    sub: "Buffer Capacity: 10 Packets · Arrival Rate: lambda",
+    bandwidthMbps: 100,
+    propagationMs: 2,
+    frontT: 0,
+    tailT: 0,
+    sentBits: 1500 * 8,
+    totalBits: 1500 * 8 * 4,
+    deliveredBits: 0,
+    elapsedMs: 0,
+    tone: "amber",
+  };
+
+  steps.push({
+    tracks: [track],
+    clockMs: 0,
+    description: "Router Ingress: A packet arrives at the router. Processing delay ($d_{proc} \\approx 10-50\\ \\mu\\text{s}$) begins immediately as the CPU checks the IP header checksum and queries the forwarding table.",
+    codeLines: [1, 2],
+  });
+
+  steps.push({
+    tracks: [{ ...track, elapsedMs: 1.5, frontT: 0.3 }],
+    clockMs: 1.5,
+    description: "FIFO Queuing: The packet enters the output interface queue. It must wait for earlier packets ahead in line to finish transmitting ($d_{queue}$). If arrival rate $\\lambda$ exceeds transmission rate $\\mu$, queue length grows exponentially.",
+    codeLines: [3],
+    message: { text: "Queuing delay active · Buffer 40% full", tone: "warn" },
+  });
+
+  steps.push({
+    tracks: [{ ...track, elapsedMs: 3.2, frontT: 1.0, deliveredBits: 1500 * 8 }],
+    clockMs: 3.2,
+    description: "Queue drained: Line becomes free and the packet is serialized onto the outgoing wire. If traffic intensity $I = \\frac{L\\lambda}{R} \\ge 1$, buffers overflow and packets are discarded (Tail Drop Loss).",
+    codeLines: [4, 5],
+    message: { text: "Packet serialized · Zero packet drops", tone: "ok" },
+  });
+
+  return {
+    steps,
+    title: "Queuing & Processing Delay at Router Node",
+    pseudocode: QUEUE_CODE,
+    stats: [
+      { label: "d_proc", value: "0.04 ms", tone: "mint" },
+      { label: "d_queue (Avg)", value: "1.5 ms", tone: "amber" },
+      { label: "Traffic Intensity I", value: "0.65 (< 1.0 OK)", tone: "mint" },
+      { label: "Drop Policy", value: "FIFO Tail-Drop", tone: "signal" },
+    ],
+  };
+}
+
+export type SignalOp =
+  | "bandwidthVsLatency"
+  | "transmissionDelay"
+  | "propagationDelay"
+  | "queuingProcessing";
 
 export function runSignalOperation(op: SignalOp, p: SignalRunParams): SignalProgram {
-  void op;
-  return bandwidthVsLatency(p);
+  switch (op) {
+    case "transmissionDelay":
+      return transmissionDelay(p);
+    case "propagationDelay":
+      return propagationDelay(p);
+    case "queuingProcessing":
+      return queuingProcessing(p);
+    case "bandwidthVsLatency":
+    default:
+      return bandwidthVsLatency(p);
+  }
 }
+

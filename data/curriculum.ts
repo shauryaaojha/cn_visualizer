@@ -49,7 +49,7 @@ export interface SectionMeta {
 const soon = (leaves: Omit<LeafMeta, "status">[]): LeafMeta[] =>
   leaves.map((l) => ({ ...l, status: "soon" as const }));
 
-// --- UNIT 1 — Network Fundamentals (building now) ---------------------------
+// --- UNIT 1 — Network Fundamentals -----------------------------------------
 
 const fundamentals: SectionMeta = {
   slug: "fundamentals",
@@ -66,34 +66,38 @@ const fundamentals: SectionMeta = {
       title: "Introduction to Networks",
       blurb: "Nodes, links, and what really moves between them.",
       icon: "cell_tower",
-      status: "soon",
-      leaves: soon([
+      status: "available",
+      leaves: [
         {
           slug: "what-is-a-network",
           title: "What Is a Network?",
           blurb: "Follow one packet from a sender, across a link, to a receiver.",
           icon: "share",
+          status: "available",
+          stats: ["3 packets", "5 B payload"],
         },
-      ]),
+      ],
     },
     {
       slug: "network-types",
       title: "Network Types",
       blurb: "The same idea at four scales — PAN, LAN, MAN, WAN.",
       icon: "travel_explore",
-      status: "soon",
-      leaves: soon([
-        { slug: "pan", title: "PAN", blurb: "Personal area — a phone and the things around it.", icon: "watch" },
-        { slug: "lan", title: "LAN", blurb: "One building, one switch, one broadcast domain.", icon: "home_work" },
-        { slug: "man", title: "MAN", blurb: "A campus or city, several sites joined.", icon: "location_city" },
-        { slug: "wan", title: "WAN", blurb: "Continents, carriers and leased links.", icon: "public" },
+      status: "available",
+      leaves: [
+        { slug: "pan", title: "PAN", blurb: "Personal area — a phone and the things around it.", icon: "watch", status: "available", stats: ["<10m radius", "BLE 5.3"] },
+        { slug: "lan", title: "LAN", blurb: "One building, one switch, one broadcast domain.", icon: "home_work", status: "available", stats: ["1 Gbps", "<0.5 ms"] },
+        { slug: "man", title: "MAN", blurb: "A campus or city, several sites joined.", icon: "location_city", status: "available", stats: ["50km ring", "10 Gbps"] },
+        { slug: "wan", title: "WAN", blurb: "Continents, carriers and leased links.", icon: "public", status: "available", stats: ["Global", "150 ms"] },
         {
           slug: "scale-comparison",
           title: "Scale Comparison",
           blurb: "Zoom from person to planet and watch device count and complexity climb.",
           icon: "zoom_out_map",
+          status: "available",
+          stats: ["4 scales", "10^6x range"],
         },
-      ]),
+      ],
     },
     {
       slug: "topologies",
@@ -107,6 +111,7 @@ const fundamentals: SectionMeta = {
           title: "Bus",
           blurb: "One shared backbone — everybody hears everything.",
           icon: "horizontal_rule",
+          status: "available",
           stats: ["11 links", "6 hops"],
         },
         {
@@ -114,6 +119,7 @@ const fundamentals: SectionMeta = {
           title: "Star",
           blurb: "Every host gets its own link to a central switch.",
           icon: "star",
+          status: "available",
           stats: ["6 links", "2 hops"],
         },
         {
@@ -121,6 +127,7 @@ const fundamentals: SectionMeta = {
           title: "Ring",
           blurb: "A closed loop with two directions to travel.",
           icon: "radio_button_unchecked",
+          status: "available",
           stats: ["6 links", "2 hops"],
         },
         {
@@ -128,6 +135,7 @@ const fundamentals: SectionMeta = {
           title: "Mesh",
           blurb: "Every host wired to every other. Expensive, unbreakable.",
           icon: "hub",
+          status: "available",
           stats: ["15 links", "1 hop"],
         },
         {
@@ -135,6 +143,7 @@ const fundamentals: SectionMeta = {
           title: "Hybrid",
           blurb: "Two stars joined by a trunk — how real sites are actually built.",
           icon: "account_tree",
+          status: "available",
           stats: ["7 links", "3 hops"],
         },
         {
@@ -142,6 +151,7 @@ const fundamentals: SectionMeta = {
           title: "Failure Comparison",
           blurb: "All five side by side. Cut one link in each and watch three of them partition.",
           icon: "link_off",
+          status: "available",
           stats: ["5 topologies", "2 survive"],
         },
       ],
@@ -151,27 +161,33 @@ const fundamentals: SectionMeta = {
       title: "Switching",
       blurb: "Reserve a path, or chop the message up and let the pieces find their own way.",
       icon: "call_split",
-      status: "soon",
-      leaves: soon([
+      status: "available",
+      leaves: [
         {
           slug: "circuit-switching",
           title: "Circuit Switching",
           blurb: "Reserve an end-to-end path first, then send.",
           icon: "settings_input_component",
+          status: "available",
+          stats: ["3 phases", "0 jitter"],
         },
         {
           slug: "packet-switching",
           title: "Packet Switching",
           blurb: "Split, scatter across different routes, reassemble.",
           icon: "grid_view",
+          status: "available",
+          stats: ["Statistical Mux", "Dynamic route"],
         },
         {
           slug: "circuit-vs-packet",
           title: "Circuit vs Packet",
           blurb: "Same message, two completely different journeys.",
           icon: "compare_arrows",
+          status: "available",
+          stats: ["3.8x efficiency", "Race mode"],
         },
-      ]),
+      ],
     },
     {
       slug: "layering",
@@ -185,13 +201,15 @@ const fundamentals: SectionMeta = {
           title: "OSI Model",
           blurb: "The seven layers and the one job each of them owns.",
           icon: "view_agenda",
-          status: "soon",
+          status: "available",
+          stats: ["7 layers", "ISO/IEC 7498"],
         },
         {
           slug: "encapsulation",
           title: "Encapsulation",
           blurb: "Watch HELLO become a segment, a packet, a frame, then bits — and back again.",
           icon: "inventory_2",
+          status: "available",
           stats: ["7 layers", "58 B overhead"],
         },
         {
@@ -199,7 +217,8 @@ const fundamentals: SectionMeta = {
           title: "TCP/IP Model",
           blurb: "The four layers the internet actually runs on, mapped against OSI.",
           icon: "dns",
-          status: "soon",
+          status: "available",
+          stats: ["4 layers", "DARPA model"],
         },
       ],
     },
@@ -215,27 +234,31 @@ const fundamentals: SectionMeta = {
           title: "Transmission Delay",
           blurb: "How long it takes to push the bits out of the interface.",
           icon: "upload",
-          status: "soon",
+          status: "available",
+          stats: ["L / R", "serialization"],
         },
         {
           slug: "propagation-delay",
           title: "Propagation Delay",
           blurb: "How long the signal takes to physically cross the distance.",
           icon: "trending_flat",
-          status: "soon",
+          status: "available",
+          stats: ["d / s", "speed of light"],
         },
         {
           slug: "queuing-and-processing",
           title: "Queuing & Processing",
           blurb: "Time lost waiting in a router's buffer and being examined.",
           icon: "pending",
-          status: "soon",
+          status: "available",
+          stats: ["Tail-drop", "d_proc + d_queue"],
         },
         {
           slug: "bandwidth-vs-latency",
           title: "Bandwidth vs Latency",
           blurb: "Same file, same 100 Mbps, two pipes. Why a fast connection can feel slow.",
           icon: "compare",
+          status: "available",
           stats: ["real numbers", "68× gap"],
         },
       ],
@@ -245,43 +268,49 @@ const fundamentals: SectionMeta = {
       title: "Transmission Media",
       blurb: "What a 1 and a 0 physically are on copper, glass and air.",
       icon: "cable",
-      status: "soon",
-      leaves: soon([
+      status: "available",
+      leaves: [
         {
           slug: "signal-basics",
           title: "Signal Basics",
           blurb: "Bits become voltage, light pulses or a modulated wave.",
           icon: "graphic_eq",
+          status: "available",
+          stats: ["Manchester", "AM/FM/QAM"],
         },
         {
           slug: "guided",
           title: "Guided Media",
           blurb: "Twisted pair, coaxial and fibre.",
           icon: "settings_ethernet",
-          children: soon([
-            { slug: "twisted-pair", title: "Twisted Pair", blurb: "Why the twist cancels interference.", icon: "cable" },
-            { slug: "coaxial", title: "Coaxial", blurb: "Conductor, insulator, shield.", icon: "adjust" },
-            { slug: "fiber-optic", title: "Fibre Optic", blurb: "Total internal reflection carrying light.", icon: "flare" },
-          ]),
+          status: "available",
+          children: [
+            { slug: "twisted-pair", title: "Twisted Pair", blurb: "Why the twist cancels interference.", icon: "cable", status: "available", stats: ["CMRR >60dB", "Cat 6A"] },
+            { slug: "coaxial", title: "Coaxial", blurb: "Conductor, insulator, shield.", icon: "adjust", status: "available", stats: ["Faraday cage", "75 Ohm"] },
+            { slug: "fiber-optic", title: "Fibre Optic", blurb: "Total internal reflection carrying light.", icon: "flare", status: "available", stats: ["TIR >80.6°", "100 Tbps"] },
+          ],
         },
         {
           slug: "unguided",
           title: "Unguided Media",
           blurb: "Radio, microwave and infrared through free space.",
           icon: "wifi",
-          children: soon([
-            { slug: "radio-waves", title: "Radio Waves", blurb: "Omnidirectional, wall-penetrating, shared.", icon: "cell_tower" },
-            { slug: "microwaves", title: "Microwaves", blurb: "Tight line-of-sight beams between dishes.", icon: "satellite_alt" },
-            { slug: "infrared", title: "Infrared", blurb: "Short range, blocked by anything opaque.", icon: "settings_remote" },
-          ]),
+          status: "available",
+          children: [
+            { slug: "radio-waves", title: "Radio Waves", blurb: "Omnidirectional, wall-penetrating, shared.", icon: "cell_tower", status: "available", stats: ["Ground/Sky", "3kHz-1GHz"] },
+            { slug: "microwaves", title: "Microwaves", blurb: "Tight line-of-sight beams between dishes.", icon: "satellite_alt", status: "available", stats: ["LOS Dish", "Rain fade"] },
+            { slug: "infrared", title: "Infrared", blurb: "Short range, blocked by anything opaque.", icon: "settings_remote", status: "available", stats: ["Room isolated", "High security"] },
+          ],
         },
         {
           slug: "media-comparison",
           title: "Media Comparison",
           blurb: "Distance, speed, interference and cost side by side.",
           icon: "table_rows",
+          status: "available",
+          stats: ["Radar benchmark", "6 media types"],
         },
-      ]),
+      ],
     },
   ],
 };

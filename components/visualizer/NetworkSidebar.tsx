@@ -21,7 +21,9 @@ export function NetworkSidebar() {
   const run = useNetStore((s) => s.run);
 
   const ids = HOST_IDS.slice(0, params.hosts);
-  const isComparison = params.op === "topoFailure";
+  const isTopo = params.op.startsWith("topo");
+  const isComparison = params.op === "topoFailure" || params.op === "typeComparison" || params.op === "switchComparison";
+  const isIntro = params.op === "introNetwork";
 
   const links = useMemo(
     () => cuttableLinks(params.op, params.hosts, params.from, params.to),
@@ -46,7 +48,6 @@ export function NetworkSidebar() {
 
   const setEndpoint = (which: "from" | "to", value: string) => {
     const other = which === "from" ? params.to : params.from;
-    // Keep them distinct, otherwise there is no journey to animate.
     const patch =
       value === other
         ? { [which]: value, [which === "from" ? "to" : "from"]: ids.find((i) => i !== value)! }
@@ -56,78 +57,110 @@ export function NetworkSidebar() {
 
   const suggestion = suggestedCut(params.op, params.hosts, params.from, params.to);
 
+  const categoryTitle = isIntro
+    ? "Introduction"
+    : params.op.startsWith("type")
+      ? "Network Types"
+      : params.op.startsWith("switch")
+        ? "Switching"
+        : "Topologies";
+
+  const categoryIcon = isIntro
+    ? "share"
+    : params.op.startsWith("type")
+      ? "public"
+      : params.op.startsWith("switch")
+        ? "call_split"
+        : "hub";
+
   return (
     <aside className="scroll-thin z-40 flex h-full w-72 shrink-0 flex-col overflow-y-auto border-r-[1.5px] border-dashed border-outline-variant bg-surface-container-low/95 backdrop-blur-xl md:bg-surface-container-low/80">
       <div className="flex flex-1 flex-col gap-md p-md">
         <div className="flex items-center gap-2 border-b-[1.5px] border-dashed border-outline-variant pb-md">
-          <Icon name="hub" className="text-[16px] text-primary" />
-          <h2 className="font-hand text-[17px] font-bold text-primary">Topology</h2>
+          <Icon name={categoryIcon} className="text-[16px] text-primary" />
+          <h2 className="font-hand text-[17px] font-bold text-primary">{categoryTitle}</h2>
         </div>
 
         <SidebarTabs />
 
-        <Field label="Hosts" hint="The same hosts get rewired for every layout.">
-          <Chips
-            value={params.hosts}
-            onChange={setHosts}
-            columns={5}
-            options={Array.from({ length: MAX_HOSTS - MIN_HOSTS + 1 }, (_, i) => ({
-              value: MIN_HOSTS + i,
-              label: String(MIN_HOSTS + i),
-            }))}
-          />
-        </Field>
+        {isTopo && (
+          <>
+            <Field label="Hosts" hint="The same hosts get rewired for every layout.">
+              <Chips
+                value={params.hosts}
+                onChange={setHosts}
+                columns={5}
+                options={Array.from({ length: MAX_HOSTS - MIN_HOSTS + 1 }, (_, i) => ({
+                  value: MIN_HOSTS + i,
+                  label: String(MIN_HOSTS + i),
+                }))}
+              />
+            </Field>
 
-        <div className="grid grid-cols-2 gap-2">
-          <Field label="Sender">
-            <Select
-              value={params.from}
-              onChange={(v) => setEndpoint("from", v)}
-              options={ids.map((i) => ({ value: i, label: i }))}
-            />
-          </Field>
-          <Field label="Receiver">
-            <Select
-              value={params.to}
-              onChange={(v) => setEndpoint("to", v)}
-              options={ids.map((i) => ({ value: i, label: i }))}
-            />
-          </Field>
-        </div>
+            <div className="grid grid-cols-2 gap-2">
+              <Field label="Sender">
+                <Select
+                  value={params.from}
+                  onChange={(v) => setEndpoint("from", v)}
+                  options={ids.map((i) => ({ value: i, label: i }))}
+                />
+              </Field>
+              <Field label="Receiver">
+                <Select
+                  value={params.to}
+                  onChange={(v) => setEndpoint("to", v)}
+                  options={ids.map((i) => ({ value: i, label: i }))}
+                />
+              </Field>
+            </div>
+          </>
+        )}
 
         {/* Faults — break the network on purpose */}
-        <div className="flex flex-col gap-1">
-          <label className="flex items-center gap-1.5 font-label-caps text-[9px] uppercase tracking-[0.08em] text-coral">
-            <Icon name="warning" className="text-[13px]" /> Cut a link
-          </label>
-          {isComparison ? (
-            <p className="font-body-sm text-body-sm leading-relaxed text-on-surface-variant/75">
-              This comparison already cuts the middle hop of each topology&apos;s route — that is the whole
-              experiment. Open a single layout to choose the link yourself.
-            </p>
-          ) : (
-            <>
+        {(isTopo || isIntro) && (
+          <div className="flex flex-col gap-1">
+            <label className="flex items-center gap-1.5 font-label-caps text-[9px] uppercase tracking-[0.08em] text-coral">
+              <Icon name="warning" className="text-[13px]" /> Cut a link
+            </label>
+            {isComparison ? (
+              <p className="font-body-sm text-body-sm leading-relaxed text-on-surface-variant/75">
+                This comparison already cuts the middle hop of each topology&apos;s route — that is the whole
+                experiment.
+              </p>
+            ) : isIntro ? (
               <Select
                 value={cutId}
                 onChange={setCut}
                 options={[
-                  { value: "", label: "— nothing cut —" },
-                  ...links.map((l) => ({
-                    value: l.id,
-                    label: l.suggested ? `${l.label}  ★` : l.label,
-                  })),
+                  { value: "", label: "— all links healthy —" },
+                  { value: "l1", label: "Alice → Switch (Link 1)" },
+                  { value: "l2", label: "Switch → Bob (Link 2)" },
                 ]}
               />
-              <p className="font-body-sm text-[11px] leading-snug text-on-surface-variant/60">
-                {cutId
-                  ? cutId === suggestion
-                    ? "★ the middle hop of the current route — the interesting one to break."
-                    : "Not on the current route? Then nothing will change. That is a result too."
-                  : "★ marks the middle hop of the route in use."}
-              </p>
-            </>
-          )}
-        </div>
+            ) : (
+              <>
+                <Select
+                  value={cutId}
+                  onChange={setCut}
+                  options={[
+                    { value: "", label: "— nothing cut —" },
+                    ...links.map((l) => ({
+                      value: l.id,
+                      label: l.suggested ? `${l.label}  ★` : l.label,
+                    })),
+                  ]}
+                />
+                <p className="font-body-sm text-[11px] leading-snug text-on-surface-variant/60">
+                  {cutId
+                    ? cutId === suggestion
+                      ? "★ the middle hop of the current route — the interesting one to break."
+                      : "Not on the current route? Then nothing will change. That is a result too."
+                    : "★ marks the middle hop of the route in use."}
+                </p>
+              </>
+            )}
+          </div>
+        )}
 
         <button
           onClick={() => run()}
@@ -139,3 +172,4 @@ export function NetworkSidebar() {
     </aside>
   );
 }
+
