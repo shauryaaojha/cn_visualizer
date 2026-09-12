@@ -4,6 +4,11 @@ An interactive, fully-animated Computer Networks visualizer for **21CSC302J**.
 Every process moves, every algorithm steps, and every network can be broken on
 purpose.
 
+**Unit 1 (Network Fundamentals) is complete** — 30 interactive visualizers
+across 7 categories under `app/topics/` (fundamentals, data-link, addressing,
+routing, transport-application, capstone). Master prompt/specs:
+[`UNIT_1_MASTER_PROMPT.md`](UNIT_1_MASTER_PROMPT.md).
+
 Architecture and build plan: [`ARCHITECTURE.md`](ARCHITECTURE.md).
 Full syllabus mapping: [`plan.md`](plan.md).
 
