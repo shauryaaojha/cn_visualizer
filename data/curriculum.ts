@@ -324,32 +324,38 @@ const addressing: SectionMeta = {
   short: "Addressing",
   blurb: "32 bits, split into a network part and a host part — and every consequence of where you put the line.",
   icon: "pin",
-  status: "soon",
+  status: "available",
   categories: [
     {
       slug: "ipv4",
       title: "IPv4 Addressing",
       blurb: "Dotted decimal, binary, classes and masks.",
       icon: "tag",
-      status: "soon",
-      leaves: soon([
-        { slug: "introduction-to-addressing", title: "MAC vs IP vs Port", blurb: "Three addresses, three different jobs.", icon: "alt_route" },
-        { slug: "ipv4-addressing", title: "IPv4 Addressing", blurb: "192.168.1.25 as 32 bits.", icon: "numbers" },
-        { slug: "classful-addressing", title: "Classful Addressing", blurb: "Why A, B and C existed at all.", icon: "category" },
-        { slug: "subnet-mask", title: "Subnet Mask", blurb: "What /24 actually means, bit by bit.", icon: "filter_alt" },
-      ]),
+      status: "available",
+      leaves: [
+        ...soon([
+          { slug: "introduction-to-addressing", title: "MAC vs IP vs Port", blurb: "Three addresses, three different jobs.", icon: "alt_route" },
+        ]),
+        { slug: "ipv4-addressing", title: "IPv4 Addressing", blurb: "192.168.1.25 as 32 bits.", icon: "numbers", status: "available", stats: ["32 bits", "254 hosts"] },
+        ...soon([
+          { slug: "classful-addressing", title: "Classful Addressing", blurb: "Why A, B and C existed at all.", icon: "category" },
+          { slug: "subnet-mask", title: "Subnet Mask", blurb: "What /24 actually means, bit by bit.", icon: "filter_alt" },
+        ]),
+      ],
     },
     {
       slug: "allocation",
       title: "Subnet Allocation",
       blurb: "Carving an address block into usable networks.",
       icon: "content_cut",
-      status: "soon",
-      leaves: soon([
-        { slug: "flsm", title: "FLSM", blurb: "Split one network into equal blocks.", icon: "view_column" },
-        { slug: "classless-addressing", title: "Classless / CIDR", blurb: "Slide the prefix and watch the split move.", icon: "linear_scale" },
-        { slug: "vlsm", title: "VLSM", blurb: "Largest-first carving with no wasted addresses.", icon: "dashboard_customize" },
-      ]),
+      status: "available",
+      leaves: [
+        ...soon([
+          { slug: "flsm", title: "FLSM", blurb: "Split one network into equal blocks.", icon: "view_column" },
+          { slug: "classless-addressing", title: "Classless / CIDR", blurb: "Slide the prefix and watch the split move.", icon: "linear_scale" },
+        ]),
+        { slug: "vlsm", title: "VLSM", blurb: "Largest-first carving with no wasted addresses.", icon: "dashboard_customize", status: "available", stats: ["4 blocks", "16 spare"] },
+      ],
     },
     {
       slug: "translation",
@@ -388,31 +394,35 @@ const routing: SectionMeta = {
   short: "Routing",
   blurb: "How a router that knows almost nothing about the internet still gets your packet to the right place.",
   icon: "route",
-  status: "soon",
+  status: "available",
   categories: [
     {
       slug: "forwarding",
       title: "Forwarding & Static Routes",
       blurb: "Hop-by-hop decisions from a table you wrote by hand.",
       icon: "alt_route",
-      status: "soon",
-      leaves: soon([
-        { slug: "ip-forwarding", title: "IP Forwarding", blurb: "One packet, one routing table lookup per hop.", icon: "east" },
-        { slug: "static-routing", title: "Static Routing", blurb: "The router only knows what you told it.", icon: "edit_road" },
-        { slug: "default-routing", title: "Default Routing", blurb: "What 0.0.0.0/0 really means.", icon: "call_missed_outgoing" },
-      ]),
+      status: "available",
+      leaves: [
+        { slug: "ip-forwarding", title: "IP Forwarding", blurb: "One packet, one routing table lookup per hop.", icon: "east", status: "available", stats: ["4 hops", "TTL 64"] },
+        ...soon([
+          { slug: "static-routing", title: "Static Routing", blurb: "The router only knows what you told it.", icon: "edit_road" },
+          { slug: "default-routing", title: "Default Routing", blurb: "What 0.0.0.0/0 really means.", icon: "call_missed_outgoing" },
+        ]),
+      ],
     },
     {
       slug: "algorithms",
       title: "Routing Algorithms",
       blurb: "Three fundamentally different ways to learn a network.",
       icon: "account_tree",
-      status: "soon",
-      leaves: soon([
-        { slug: "distance-vector", title: "Distance Vector", blurb: "Routers slowly gossip their way to convergence.", icon: "sync" },
+      status: "available",
+      leaves: [
+        { slug: "distance-vector", title: "Distance Vector", blurb: "Routers slowly gossip their way to convergence.", icon: "sync", status: "available", stats: ["Bellman-Ford", "16 = ∞"] },
+        ...soon([
         { slug: "link-state", title: "Link State", blurb: "Flood the map, then run Dijkstra on it.", icon: "map" },
         { slug: "path-vector", title: "Path Vector", blurb: "Carry the whole AS path to kill loops.", icon: "timeline" },
-      ]),
+        ]),
+      ],
     },
     {
       slug: "protocols",

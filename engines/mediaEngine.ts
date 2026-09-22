@@ -89,7 +89,7 @@ function signalBasics(p: MediaRunParams): MediaProgram {
     }
   } else {
     // Carrier wave sine
-    let currX = 20;
+    const currX = 20;
     waveSvgPath = `M ${currX} ${midY}`;
     for (let x = 0; x <= 400; x += 4) {
       const amp = signalType === "am" ? (Math.sin(x / 40) > 0 ? 30 : 10) : 25;

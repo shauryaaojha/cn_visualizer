@@ -14,7 +14,7 @@ import { FitStage } from "@/components/visualizer/FitStage";
 import { fmtBits, fmtMs } from "@/engines/signalEngine";
 import { PALETTE } from "@/lib/palette";
 import { useSignalStore } from "@/lib/signalStore";
-import type { DelayKind, DelaySeg, SignalTrack } from "@/types/visualization";
+import type { DelayKind, SignalTrack } from "@/types/visualization";
 
 const PIPE_W = 430;
 const TRACK_W = 640;
