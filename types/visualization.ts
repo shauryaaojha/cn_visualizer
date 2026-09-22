@@ -402,3 +402,103 @@ export type MediaOperationId =
   | "unguidedInfrared"
   | "mediaComparison";
 
+// ===========================================================================
+// ENGINE 5 — addressEngine  ·  AddressCanvas
+//
+// 32-bit binary grid and proportional address-space bar. Powers IPv4 addressing
+// and VLSM in Unit 2, as well as upcoming leaves for classful addressing,
+// subnet masks, FLSM, classless / CIDR, supernetting, and NAT. Reused by Unit 4
+// bitEngine for bit-level error detection and correction.
+// ===========================================================================
+
+export type AddrBitRole = "network" | "host" | "subnet" | "class-prefix";
+
+export interface AddrBit {
+  val: 0 | 1;
+  role: AddrBitRole;
+  state: CellState;
+  /** Place value within the octet: 128, 64, 32, 16, 8, 4, 2, 1 */
+  placeValue?: number;
+  /** Global bit index 0–31 from MSB to LSB */
+  index?: number;
+}
+
+export interface AddrOctet {
+  decimal: number;
+  bits: AddrBit[];
+  label?: string;
+  state?: CellState;
+}
+
+export interface AddrGridRow {
+  id: string;
+  label: string;
+  octets: AddrOctet[];
+  /** Where the boundary marker falls (0–32 bits from MSB). Divider line is drawn after this bit. */
+  boundaryAfterBit?: number;
+}
+
+export interface AddrBlock {
+  id: string;
+  label: string;
+  startIp: string;
+  endIp: string;
+  prefix: number;
+  /** Proportional placement within the parent space (0–100%) */
+  offsetPct: number;
+  /** Proportional width within the parent space (0–100%) */
+  widthPct: number;
+  /** Chalk hue from CHALK_SERIES or PALETTE */
+  color: string;
+  usableHosts: number;
+  /** VLSM requirement: how many hosts this department actually asked for */
+  hostsNeeded?: number;
+  /** VLSM overhead: usable capacity allocated minus hosts requested */
+  hostsWasted?: number;
+  state?: CellState;
+  /** Nested blocks showing hierarchical carves (e.g., /24 -> /25 -> /26) */
+  children?: AddrBlock[];
+}
+
+export interface AddrSpaceBar {
+  title?: string;
+  baseBlock: string;
+  blocks: AddrBlock[];
+  totalAddresses: number;
+}
+
+export interface AddrFact {
+  label: string;
+  value: string;
+  tone?: "signal" | "amber" | "mint" | "coral";
+}
+
+export interface AddrStep extends BaseStep {
+  /** Stacked 32-bit grid rows (single IP, IP over MASK, or stacked networks) */
+  gridRows?: AddrGridRow[];
+  /** Address space bar carved into proportional subnets (VLSM, FLSM) */
+  spaceBar?: AddrSpaceBar;
+  /** Secondary comparison bar (e.g., FLSM vs VLSM comparison) */
+  comparisonBar?: AddrSpaceBar;
+  /** Key/value facts readout: Network, Broadcast, Usable range, etc. */
+  facts?: AddrFact[];
+  /** Reused DataTable for block summaries or NAT tables */
+  table?: DataTable;
+}
+
+export type AddrProgram = Program<AddrStep>;
+
+/**
+ * Address operations.
+ * Currently implemented: "ipv4Addressing" | "vlsm"
+ * Coming in future passes:
+ * - introAddressing
+ * - classfulAddressing
+ * - subnetMask
+ * - flsm
+ * - classlessAddressing
+ * - nat
+ * - supernetting
+ */
+export type AddrOperationId = "ipv4Addressing" | "vlsm";
+

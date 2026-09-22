@@ -1,6 +1,7 @@
-import { runNetOperation, cuttableLinks, suggestedCut } from "../engines/netEngine.ts";
+import { runNetOperation, suggestedCut } from "../engines/netEngine.ts";
 import { runLayerOperation, LAYER_DEFAULTS } from "../engines/layerEngine.ts";
 import { runSignalOperation, SIGNAL_DEFAULTS } from "../engines/signalEngine.ts";
+import { runAddressOperation } from "../engines/addressEngine.ts";
 
 let fails = 0;
 const ok = (cond: boolean, msg: string) => {
@@ -73,6 +74,103 @@ const verdict = String(fastB.steps[fastB.steps.length - 1].message?.text ?? "");
 ok(verdict.startsWith("DSL"), `far-but-wide pipe wins at 100 MB — verdict: "${verdict}"`);
 ok(fastB.stats.find((x) => x.label === "Satellite")!.tone === "mint",
    "satellite is marked the winner despite 300 ms of latency");
+
+console.log("\n-- addressEngine: IPv4 arithmetic & boundary checks --");
+// Test 1: 192.168.1.25/24 -> network 192.168.1.0, broadcast 192.168.1.255, 254 usable hosts
+const p24 = runAddressOperation({
+  op: "ipv4Addressing",
+  ip: "192.168.1.25",
+  prefix: 24,
+  faults: [],
+});
+const net24 = p24.stats.find((s) => s.label === "Network")?.value;
+const bcast24 = p24.stats.find((s) => s.label === "Broadcast")?.value;
+const hosts24 = p24.stats.find((s) => s.label === "Usable hosts")?.value;
+ok(net24 === "192.168.1.0", `192.168.1.25/24 -> network ${net24} (expected 192.168.1.0)`);
+ok(bcast24 === "192.168.1.255", `192.168.1.25/24 -> broadcast ${bcast24} (expected 192.168.1.255)`);
+ok(hosts24 === "254", `192.168.1.25/24 -> usable hosts ${hosts24} (expected 254)`);
+
+// Test 2: 10.0.0.0/8 -> 16,777,214 usable hosts
+const p8 = runAddressOperation({
+  op: "ipv4Addressing",
+  ip: "10.0.0.0",
+  prefix: 8,
+  faults: [],
+});
+const hosts8 = p8.stats.find((s) => s.label === "Usable hosts")?.value;
+ok(hosts8 === "16,777,214", `10.0.0.0/8 -> usable hosts ${hosts8} (expected 16,777,214)`);
+
+// Test 3: /30 -> 2 usable; /31 -> 0 usable; /32 -> 0 usable (no negatives anywhere)
+const p30 = runAddressOperation({ op: "ipv4Addressing", ip: "192.168.1.1", prefix: 30, faults: [] });
+const p31 = runAddressOperation({ op: "ipv4Addressing", ip: "192.168.1.1", prefix: 31, faults: [] });
+const p32 = runAddressOperation({ op: "ipv4Addressing", ip: "192.168.1.1", prefix: 32, faults: [] });
+const hosts30 = p30.stats.find((s) => s.label === "Usable hosts")?.value;
+const hosts31 = p31.stats.find((s) => s.label === "Usable hosts")?.value;
+const hosts32 = p32.stats.find((s) => s.label === "Usable hosts")?.value;
+ok(hosts30 === "2", `/30 -> usable hosts ${hosts30} (expected 2)`);
+ok(hosts31 === "0", `/31 -> usable hosts ${hosts31} (expected 0)`);
+ok(hosts32 === "0", `/32 -> usable hosts ${hosts32} (expected 0)`);
+
+console.log("\n-- addressEngine: VLSM hierarchical carving & free space --");
+// Test 4: VLSM on 192.168.1.0/24 with 100/50/20/10 -> prefixes /25 /26 /27 /28, networks .0, .128, .192, .224, and leftover free space correct
+const vlsmP = runAddressOperation({
+  op: "vlsm",
+  baseBlock: "192.168.1.0/24",
+  departments: [
+    { id: "d1", name: "Engineering", hostsNeeded: 100 },
+    { id: "d2", name: "Sales", hostsNeeded: 50 },
+    { id: "d3", name: "Support", hostsNeeded: 20 },
+    { id: "d4", name: "Ops", hostsNeeded: 10 },
+  ],
+  faults: [],
+});
+const summaryStep = vlsmP.steps.find((s) => s.table !== undefined && s.spaceBar?.blocks.some((b) => b.id === "block-free-space"));
+const blocks = summaryStep?.spaceBar?.blocks ?? [];
+const engBlock = blocks.find((b) => b.id === "block-d1");
+const salesBlock = blocks.find((b) => b.id === "block-d2");
+const suppBlock = blocks.find((b) => b.id === "block-d3");
+const opsBlock = blocks.find((b) => b.id === "block-d4");
+const freeBlock = blocks.find((b) => b.id === "block-free-space");
+
+ok(engBlock?.prefix === 25 && engBlock?.startIp === "192.168.1.0", `Engineering: /${engBlock?.prefix} network ${engBlock?.startIp} (expected /25 192.168.1.0)`);
+ok(salesBlock?.prefix === 26 && salesBlock?.startIp === "192.168.1.128", `Sales: /${salesBlock?.prefix} network ${salesBlock?.startIp} (expected /26 192.168.1.128)`);
+ok(suppBlock?.prefix === 27 && suppBlock?.startIp === "192.168.1.192", `Support: /${suppBlock?.prefix} network ${suppBlock?.startIp} (expected /27 192.168.1.192)`);
+ok(opsBlock?.prefix === 28 && opsBlock?.startIp === "192.168.1.224", `Ops: /${opsBlock?.prefix} network ${opsBlock?.startIp} (expected /28 192.168.1.224)`);
+ok(freeBlock?.startIp === "192.168.1.240" && freeBlock?.endIp === "192.168.1.255", `Free space: ${freeBlock?.startIp} - ${freeBlock?.endIp} (expected 192.168.1.240 - 192.168.1.255)`);
+
+// Test 5: VLSM with an impossible requirement (e.g. 300 hosts in a /24) produces an error-toned final frame rather than throwing
+const overflowP = runAddressOperation({
+  op: "vlsm",
+  baseBlock: "192.168.1.0/24",
+  departments: [
+    { id: "giant", name: "Datacenter", hostsNeeded: 300 },
+  ],
+  faults: [],
+});
+const overflowLast = overflowP.steps[overflowP.steps.length - 1];
+ok(overflowLast.message?.tone === "error", `Impossible VLSM requirement (300 hosts in /24) produces error frame: "${overflowLast.message?.text}"`);
+ok(overflowP.stats.find((s) => s.label === "Status")?.value === "Overflow", "Overflow status reflected in stats");
+
+console.log("\n-- addressEngine: bit-flip fault consequences --");
+// Test 6: A bit flip changes the computed network address in the way claimed
+// Flip bit 23 of 192.168.1.25/24 (last bit of 3rd octet). 1 -> 0 => network becomes 192.168.0.0
+const flipP = runAddressOperation({
+  op: "ipv4Addressing",
+  ip: "192.168.1.25",
+  prefix: 24,
+  faults: [{ kind: "bitFlip", index: 23 }],
+});
+const flipNet = flipP.stats.find((s) => s.label === "Network")?.value;
+ok(flipNet === "192.168.0.0", `Flipping bit 23 moved network from 192.168.1.0 to ${flipNet} (expected 192.168.0.0)`);
+// Flip bit 31 of 192.168.1.25/24 (LSB of host portion). Network remains 192.168.1.0.
+const hostFlipP = runAddressOperation({
+  op: "ipv4Addressing",
+  ip: "192.168.1.25",
+  prefix: 24,
+  faults: [{ kind: "bitFlip", index: 31 }],
+});
+const hostFlipNet = hostFlipP.stats.find((s) => s.label === "Network")?.value;
+ok(hostFlipNet === "192.168.1.0", `Host bit flip (bit 31) preserves network address ${hostFlipNet}`);
 
 console.log(fails === 0 ? "\nALL ENGINE CHECKS PASSED\n" : `\n${fails} CHECK(S) FAILED\n`);
 process.exit(fails === 0 ? 0 : 1);
