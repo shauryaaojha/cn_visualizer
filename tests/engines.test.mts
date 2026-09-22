@@ -1,6 +1,7 @@
 import { runNetOperation, cuttableLinks, suggestedCut } from "../engines/netEngine.ts";
 import { runLayerOperation, LAYER_DEFAULTS } from "../engines/layerEngine.ts";
 import { runSignalOperation, SIGNAL_DEFAULTS } from "../engines/signalEngine.ts";
+import { ROUTING_DEFAULTS, RIP_INFINITY, runRoutingOperation } from "../engines/routingEngine.ts";
 
 let fails = 0;
 const ok = (cond: boolean, msg: string) => {
@@ -73,6 +74,44 @@ const verdict = String(fastB.steps[fastB.steps.length - 1].message?.text ?? "");
 ok(verdict.startsWith("DSL"), `far-but-wide pipe wins at 100 MB — verdict: "${verdict}"`);
 ok(fastB.stats.find((x) => x.label === "Satellite")!.tone === "mint",
    "satellite is marked the winner despite 300 ms of latency");
+
+console.log("\n-- routingEngine: Bellman-Ford, failures and forwarding --");
+const chainDistances = (count: number, costs: Record<string, number>, from: string) => {
+  const ids = ["A", "B", "C", "D", "E", "F"].slice(0, count);
+  const origin = ids.indexOf(from);
+  return Object.fromEntries(ids.map((id, i) => {
+    const lo = Math.min(i, origin), hi = Math.max(i, origin);
+    let distance = 0;
+    for (let j = lo; j < hi; j++) distance += costs[`r-${ids[j]}-${ids[j + 1]}`] ?? (j % 2 === 0 ? 1 : 2);
+    return [id, distance];
+  }));
+};
+for (const [routerCount, linkCosts] of [
+  [4, { "r-A-B": 3, "r-B-C": 1, "r-C-D": 5 }],
+  [6, { "r-A-B": 2, "r-B-C": 4, "r-C-D": 1, "r-D-E": 3, "r-E-F": 2 }],
+] as const) {
+  const program = runRoutingOperation({ ...ROUTING_DEFAULTS, op: "distanceVector", routerCount, linkCosts });
+  const final = program.steps.at(-1)!;
+  const expected = chainDistances(routerCount, linkCosts, "A");
+  const tableA = final.tables.find((t) => t.routerId === "A")!;
+  ok(tableA.entries.every((entry) => entry.metric === expected[entry.destination]), `DV ${routerCount} routers matches reference Dijkstra distances from A`);
+  ok(final.converged && program.stats.find((s) => s.label === "Converged")!.value === "yes", `DV ${routerCount} routers says converged`);
+  ok(Number(program.stats.find((s) => s.label === "Rounds")!.value) >= 1, `DV ${routerCount} routers reports derived convergence rounds`);
+}
+const partitioned = runRoutingOperation({ ...ROUTING_DEFAULTS, op: "distanceVector", routerCount: 4, faults: [{ kind: "linkDown", id: "r-B-C" }] });
+const finalPartition = partitioned.steps.at(-1)!;
+const aToD = finalPartition.tables.find((t) => t.routerId === "A")!.entries.find((e) => e.destination === "D")!;
+ok(aToD.metric === RIP_INFINITY, "cutting the middle link leaves the far side unreachable at RIP 16");
+const faultAt = partitioned.steps.findIndex((s) => s.message?.text.includes("is down"));
+const climb = partitioned.steps.slice(faultAt + 1).map((s) => s.tables.find((t) => t.routerId === "A")!.entries.find((e) => e.destination === "D")!.metric);
+ok(climb.every((n, i) => i === 0 || n >= climb[i - 1]) && climb.at(-1) === RIP_INFINITY, "count-to-infinity climb is monotonic and stops at 16");
+const forwarding = runRoutingOperation({ ...ROUTING_DEFAULTS, op: "ipForwarding" });
+const lpm = forwarding.steps.find((s) => s.message?.text.startsWith("Longest-prefix match"))!;
+ok(lpm.tables[0].entries.find((e) => e.state === "changed")!.destination.endsWith("/24"), "IP forwarding selects the longest matching /24 prefix");
+const expired = runRoutingOperation({ ...ROUTING_DEFAULTS, op: "ipForwarding", ttl: 2 });
+ok(expired.steps.at(-1)!.message?.tone === "error", "TTL lower than hop count drops the packet with an error banner");
+const lossParams = { ...ROUTING_DEFAULTS, op: "ipForwarding" as const, faults: [{ kind: "packetLoss" as const, rate: 0.5 }] };
+ok(JSON.stringify(runRoutingOperation(lossParams)) === JSON.stringify(runRoutingOperation(lossParams)), "seeded packet loss is byte-identical on replay");
 
 console.log(fails === 0 ? "\nALL ENGINE CHECKS PASSED\n" : `\n${fails} CHECK(S) FAILED\n`);
 process.exit(fails === 0 ? 0 : 1);

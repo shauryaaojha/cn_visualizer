@@ -402,3 +402,57 @@ export type MediaOperationId =
   | "unguidedInfrared"
   | "mediaComparison";
 
+// ===========================================================================
+// ENGINE 6 — routingEngine  ·  RoutingCanvas
+//
+// A network graph paired with one or more routing tables. Unit 3 uses it for
+// forwarding and distance-vector first; static/default routes, link-state,
+// path-vector, RIP, OSPF, BGP, EIGRP and multicast reuse this same frame shape.
+// Graph primitives deliberately come from ENGINE 1: a route is still a packet
+// crossing NetNodes and NetLinks, while the tables explain why it chose a hop.
+// ===========================================================================
+
+export interface RoutingTableEntry {
+  destination: string;
+  nextHop: string;
+  outgoingInterface: string;
+  metric: number;
+  /** AS path, router path, or SPF path when a protocol needs to expose it. */
+  path?: string[];
+  /** `changed` flashes a learned route; `final` marks a settled best route. */
+  state?: TableCell["state"];
+}
+
+export interface RoutingTable {
+  id: string;
+  title: string;
+  routerId?: string;
+  entries: RoutingTableEntry[];
+  /** A forwarding lesson can spotlight one router while DV shows all of them. */
+  focused?: boolean;
+}
+
+export interface RoutingUpdate {
+  /** Packet-shaped control-plane update travelling between adjacent routers. */
+  packet: Packet;
+  from: string;
+  to: string;
+  kind: "vector" | "lsa";
+}
+
+export interface RoutingStep extends BaseStep {
+  panels: NetPanel[];
+  /** One focused table or N simultaneous tables, according to the operation. */
+  tables: RoutingTable[];
+  round: number;
+  converged: boolean;
+  updates?: RoutingUpdate[];
+}
+
+export type RoutingProgram = Program<RoutingStep>;
+
+// Extend only as their engines land: staticRouting, defaultRouting, linkState,
+// pathVector, ripV1, ripV2, ospfSingleArea, ospfMultiArea, bgp, eigrp,
+// multicasting, ipv6Basics.
+export type RoutingOperationId = "ipForwarding" | "distanceVector";
+

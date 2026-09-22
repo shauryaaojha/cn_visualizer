@@ -63,7 +63,7 @@ export function NetworkCanvas() {
           style={multi ? undefined : { width: W }}
         >
           {panels.map((p) => (
-            <Panel key={p.id} panel={p} w={W} h={H} r={R} compact={multi} />
+            <NetGraphPanel key={p.id} panel={p} w={W} h={H} r={R} compact={multi} />
           ))}
         </div>
 
@@ -111,18 +111,21 @@ export function NetworkCanvas() {
   );
 }
 
-function Panel({
+export function NetGraphPanel({
   panel,
   w,
   h,
   r,
   compact,
+  protocolPackets,
 }: {
   panel: NetPanel;
   w: number;
   h: number;
   r: number;
   compact: boolean;
+  /** RoutingCanvas opts in so protocol packets use their reserved violet. */
+  protocolPackets?: boolean;
 }) {
   const pad = r + 8;
   const px = (x: number) => pad + (x / 100) * (w - pad * 2);
@@ -259,7 +262,14 @@ function Panel({
               animate={{ left: x - pw / 2, top: y - ph / 2 }}
               transition={{ type: "tween", duration: 0.55, ease: "easeInOut" }}
               className={`absolute z-10 flex items-center justify-center rounded-sm border font-mono font-bold ${PACKET_STYLE[pk.state]}`}
-              style={{ width: pw, height: ph, fontSize: compact ? 8 : 10 }}
+              style={{
+                width: pw,
+                height: ph,
+                fontSize: compact ? 8 : 10,
+                ...(protocolPackets && pk.kind === "control"
+                  ? { borderColor: PALETTE.protocol, backgroundColor: PALETTE.protocol, color: PALETTE.board }
+                  : {}),
+              }}
             >
               {pk.state === "dropped" ? "✕" : pk.label}
             </motion.div>
