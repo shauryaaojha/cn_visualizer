@@ -24,7 +24,7 @@
 import { AnimatePresence, motion, useReducedMotion, useSpring } from "framer-motion";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { createPortal } from "react-dom";
 import { Icon } from "@/components/ui/Icon";
 import { SECTIONS, leavesOfSection, normalizePath } from "@/data/curriculum";
@@ -54,7 +54,12 @@ const LIVE = ROWS.reduce((n, r) => n + r.ready, 0);
 export function SyllabusMenu() {
   const [open, setOpen] = useState(false);
   const [hover, setHover] = useState<number | null>(null);
-  const [mounted, setMounted] = useState(false);
+  // true on the client, false during prerender — portals need document.body.
+  const mounted = useSyncExternalStore(
+    () => () => {},
+    () => true,
+    () => false,
+  );
   const reduce = useReducedMotion();
   const pathname = usePathname();
   const trigger = useRef<HTMLButtonElement | null>(null);
@@ -65,26 +70,34 @@ export function SyllabusMenu() {
   const x = useSpring(0, { stiffness: 260, damping: 32 });
   const y = useSpring(0, { stiffness: 260, damping: 32 });
 
-  useEffect(() => setMounted(true), []);
+  const dismiss = () => {
+    setOpen(false);
+    setHover(null);
+  };
 
-  // Close on navigation (the chalk wipe covers the swap).
-  useEffect(() => setOpen(false), [pathname]);
+  // Close on navigation (the chalk wipe covers the swap). Adjusting state
+  // while rendering, rather than in an effect, avoids a wasted render pass.
+  const [seenPath, setSeenPath] = useState(pathname);
+  if (pathname !== seenPath) {
+    setSeenPath(pathname);
+    dismiss();
+  }
 
   useEffect(() => {
-    if (!open) {
-      setHover(null);
-      return;
-    }
+    if (!open) return;
     closeBtn.current?.focus();
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setOpen(false);
+      if (e.key === "Escape") {
+        setOpen(false);
+        setHover(null);
+      }
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [open]);
 
   const close = () => {
-    setOpen(false);
+    dismiss();
     trigger.current?.focus();
   };
 
