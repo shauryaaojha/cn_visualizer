@@ -136,7 +136,7 @@ export function Landing() {
           steps={CARVE_STEPS}
           href="/topics/addressing"
           cta="Open Unit 2"
-          visual={(i) => <CarveAddress active={i} />}
+          visual={(_, r, p) => <CarveAddress progress={p} reduce={r} />}
         />
         <ScrollShowcase
           scroller={scroller}
@@ -146,7 +146,7 @@ export function Landing() {
           steps={PATH_STEPS}
           href="/topics/routing"
           cta="Open Unit 3"
-          visual={(i) => <FindPath active={i} />}
+          visual={(i, r, p) => <FindPath active={i} progress={p} reduce={r} />}
         />
         <ScrollShowcase
           scroller={scroller}
@@ -156,7 +156,7 @@ export function Landing() {
           steps={ERROR_STEPS}
           href="/topics/data-link"
           cta="See Unit 4"
-          visual={(i) => <CatchError active={i} />}
+          visual={(i, r, p) => <CatchError active={i} progress={p} reduce={r} />}
         />
         <ScrollShowcase
           scroller={scroller}
@@ -166,7 +166,7 @@ export function Landing() {
           steps={HANDSHAKE_STEPS}
           href="/topics/transport-application"
           cta="See Unit 5"
-          visual={(i) => <ShakeHands active={i} />}
+          visual={(_, r, p) => <ShakeHands progress={p} reduce={r} />}
         />
 
         <footer className="mx-auto flex w-full max-w-6xl flex-col gap-2 border-t border-outline-variant px-margin py-10 font-sans text-[14px] text-on-surface-variant md:flex-row md:justify-between">

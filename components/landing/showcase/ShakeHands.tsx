@@ -1,124 +1,182 @@
 "use client";
 
-// Unit 5 — Transport & Application. What happens when you open a page, as a
-// ladder diagram (time runs down):
-//   1. DNS turns the name into an address
-//   2. TCP's three-way handshake opens the connection
-//   3. HTTP asks for the page
-//   4. the server answers
-// Each arrow draws itself as its step is reached, so the ladder grows as you
-// scroll — the order of messages is the whole lesson.
+// Unit 5 — Transport & Application, on Animmaster Scroll Animation/38
+// (sticky cards: a front card flips with an elastic spring to reveal a
+// tilted deck, then the cards are flicked off one by one as you scroll).
+//
+// Every card in the deck is one message of opening a web page — DNS query,
+// DNS answer, SYN, SYN-ACK, ACK, GET, 200 OK — and the order they fly off is
+// the order they are sent. When the deck is empty, the page has loaded.
+//
+// Kept from the demo: the elastic flip (spring with low damping) triggered at
+// a scroll threshold, per-card tilt angles, scrubbed dismissal where each
+// card rises and over-rotates on its own slice of the scroll. Changed:
+// GSAP/Lenis/pin → framer-motion on the page's scroll; four image cards →
+// seven message cards with sender, receiver and meaning.
 
-import { motion } from "framer-motion";
+import { motion, useMotionValueEvent, useTransform, type MotionValue } from "framer-motion";
+import { useState } from "react";
 import { PALETTE } from "@/lib/palette";
-import type { ShowStep } from "./ScrollShowcase";
+import { STEP_AT, type ShowStep } from "./ScrollShowcase";
 
 export const HANDSHAKE_STEPS: ShowStep[] = [
   {
     tag: "DNS",
     title: "Find the address",
-    detail: "Your browser only knows a name. It asks DNS — \"where is cn.example?\" — and gets back 93.184.216.34 before a single TCP byte is sent.",
+    detail:
+      'Your browser only knows a name. It asks DNS "where is cn.example?" and gets back 93.184.216.34 before a single TCP byte is sent.',
   },
   {
     tag: "SYN",
     title: "Shake hands",
-    detail: "TCP opens the connection in three messages: SYN, SYN-ACK, ACK. Both sides now agree on starting sequence numbers.",
+    detail:
+      "TCP opens the connection in three messages: SYN, SYN-ACK, ACK. Both sides now agree on starting sequence numbers.",
   },
   {
     tag: "GET",
     title: "Ask for the page",
-    detail: "Only now does HTTP speak: GET /index.html, carried inside TCP segments on port 80 (443 for HTTPS).",
+    detail: "Only now does HTTP speak: GET /index.html, carried inside TCP segments to port 80 (443 for HTTPS).",
   },
   {
     tag: "200",
     title: "Get the answer",
-    detail: "The server replies 200 OK with the page. TCP numbers and acknowledges every segment so nothing arrives missing or out of order.",
+    detail:
+      "The server replies 200 OK with the page. TCP numbers and acknowledges every segment, so nothing arrives missing or out of order.",
   },
 ];
 
-const X = { you: 70, dns: 240, web: 410 };
-const TOP = 56;
-const ROW = 44;
+const N = HANDSHAKE_STEPS.length;
+const clamp01 = (v: number) => Math.min(Math.max(v, 0), 1);
 
-type Msg = { from: keyof typeof X; to: keyof typeof X; label: string; color: string; step: number };
+type Msg = { label: string; from: string; to: string; note: string; color: string; step: number };
 const MSGS: Msg[] = [
-  { from: "you", to: "dns", label: "where is cn.example?", color: PALETTE.protocol, step: 0 },
-  { from: "dns", to: "you", label: "93.184.216.34", color: PALETTE.protocol, step: 0 },
-  { from: "you", to: "web", label: "SYN", color: PALETTE.control, step: 1 },
-  { from: "web", to: "you", label: "SYN-ACK", color: PALETTE.control, step: 1 },
-  { from: "you", to: "web", label: "ACK", color: PALETTE.control, step: 1 },
-  { from: "you", to: "web", label: "GET /index.html", color: PALETTE.data, step: 2 },
-  { from: "web", to: "you", label: "200 OK · page", color: PALETTE.ok, step: 3 },
+  { label: "DNS query", from: "laptop", to: "DNS", note: "where is cn.example?", color: PALETTE.protocol, step: 0 },
+  { label: "DNS reply", from: "DNS", to: "laptop", note: "93.184.216.34", color: PALETTE.protocol, step: 0 },
+  { label: "SYN", from: "laptop", to: "server", note: "seq = 1000", color: PALETTE.control, step: 1 },
+  { label: "SYN-ACK", from: "server", to: "laptop", note: "seq = 5000, ack = 1001", color: PALETTE.control, step: 1 },
+  { label: "ACK", from: "laptop", to: "server", note: "ack = 5001 · connected", color: PALETTE.control, step: 1 },
+  { label: "GET", from: "laptop", to: "server", note: "/index.html · port 80", color: PALETTE.data, step: 2 },
+  { label: "200 OK", from: "server", to: "laptop", note: "here's the page", color: PALETTE.ok, step: 3 },
 ];
+// The demo's tilts, extended to seven cards.
+const TILT = [-10, -20, -5, 10, -14, 6, -3];
+const DISMISS_TILT = [-50, -60, -45, 50, -55, 45, -40];
 
-export function ShakeHands({ active }: { active: number }) {
-  const height = TOP + MSGS.length * ROW + 20;
+// Each message gets its own slice of its step's scroll.
+const SLICES = MSGS.map((m) => {
+  const same = MSGS.filter((o) => o.step === m.step);
+  const k = same.indexOf(m);
+  const a = STEP_AT(m.step, N);
+  const b = STEP_AT(m.step + 1, N);
+  // Step 0 also has to leave room for the flip at its start.
+  const start = m.step === 0 ? a + 0.07 : a;
+  const len = (b - start) / same.length;
+  return [start + k * len, start + (k + 1) * len] as const;
+});
+const FLIP_AT = STEP_AT(0, N) + 0.03;
+
+const CW = 230;
+const CH = 300;
+
+export function ShakeHands({ progress, reduce }: { progress: MotionValue<number>; reduce: boolean }) {
+  const [flipped, setFlipped] = useState(reduce);
+  useMotionValueEvent(progress, "change", (p) => {
+    const f = reduce || p > FLIP_AT;
+    setFlipped((v) => (v === f ? v : f));
+  });
+  const spring = { type: "spring" as const, stiffness: 260, damping: 12 };
+
   return (
-    <svg viewBox={`0 0 480 ${height}`} className="w-[480px] overflow-visible">
-      {(Object.keys(X) as (keyof typeof X)[]).map((k) => (
-        <g key={k}>
-          <text
-            x={X[k]}
-            y={20}
-            textAnchor="middle"
-            fontSize={16}
-            fontWeight={700}
-            fontFamily="var(--font-kalam)"
-            fill={PALETTE.chalk}
-          >
-            {k === "you" ? "Your laptop" : k === "dns" ? "DNS server" : "Web server"}
-          </text>
-          <line x1={X[k]} x2={X[k]} y1={32} y2={height} stroke={PALETTE.wire} strokeWidth={2} strokeDasharray="4 6" />
-        </g>
-      ))}
+    <div className="relative h-[440px] w-[480px] [perspective:1200px]">
+      {/* what's left when every message has gone */}
+      <div
+        className="absolute left-1/2 top-1/2 flex flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed"
+        style={{ width: CW, height: CH, marginLeft: -CW / 2, marginTop: -CH / 2, borderColor: `${PALETTE.ok}88` }}
+      >
+        <span className="font-hand text-[28px] font-bold" style={{ color: PALETTE.ok }}>
+          Page loaded
+        </span>
+        <span className="font-mono text-[13px] text-on-surface-variant">7 messages · 3 protocols</span>
+      </div>
 
-      {MSGS.map((m, i) => {
-        const shown = m.step <= active;
-        const y1 = TOP + i * ROW;
-        const y2 = y1 + ROW * 0.6;
-        const x1 = X[m.from];
-        const x2 = X[m.to];
-        const dir = Math.sign(x2 - x1);
-        // Delay within the step, so the three handshake arrows draw in order.
-        const order = MSGS.filter((o) => o.step === m.step).indexOf(m);
-        return (
-          <g key={i}>
-            <motion.path
-              d={`M ${x1} ${y1} L ${x2 - dir * 6} ${y2}`}
-              stroke={m.color}
-              strokeWidth={2.5}
-              fill="none"
-              initial={false}
-              animate={{ pathLength: shown ? 1 : 0, opacity: shown ? 1 : 0 }}
-              transition={{ duration: 0.5, delay: shown ? order * 0.35 : 0 }}
-            />
-            <motion.polygon
-              points={`${x2},${y2} ${x2 - dir * 10},${y2 - 5} ${x2 - dir * 10},${y2 + 5}`}
-              fill={m.color}
-              initial={false}
-              animate={{ opacity: shown ? 1 : 0 }}
-              transition={{ delay: shown ? order * 0.35 + 0.45 : 0 }}
-            />
-            <motion.text
-              x={(x1 + x2) / 2}
-              y={(y1 + y2) / 2 - 7}
-              textAnchor="middle"
-              fontSize={13}
-              fontFamily="var(--font-jetbrains-mono)"
-              fill={m.color}
-              // A board-coloured halo knocks the dashed lifelines out behind the label.
-              stroke="#24503F"
-              strokeWidth={5}
-              paintOrder="stroke"
-              initial={false}
-              animate={{ opacity: shown ? 1 : 0 }}
-              transition={{ delay: shown ? order * 0.35 + 0.25 : 0 }}
-            >
-              {m.label}
-            </motion.text>
-          </g>
-        );
-      })}
-    </svg>
+      {/* the deck — last message at the bottom, first on top */}
+      {[...MSGS]
+        .map((m, i) => ({ m, i }))
+        .reverse()
+        .map(({ m, i }) => (
+          <MessageCard
+            key={m.label}
+            m={m}
+            i={i}
+            progress={progress}
+            flipped={flipped}
+            spring={spring}
+            reduce={reduce}
+          />
+        ))}
+
+      {/* the front card */}
+      <motion.div
+        className="absolute left-1/2 top-1/2 flex flex-col justify-between rounded-xl border-2 bg-surface-container p-5 [backface-visibility:hidden]"
+        style={{ width: CW, height: CH, marginLeft: -CW / 2, marginTop: -CH / 2, borderColor: PALETTE.data }}
+        initial={false}
+        animate={{ rotateY: flipped ? 180 : 0 }}
+        transition={reduce ? { duration: 0 } : spring}
+      >
+        <span className="font-label-caps text-[11px] uppercase text-on-surface-variant">You type</span>
+        <span className="font-mono text-[26px] font-bold text-on-surface">cn.example</span>
+        <span className="font-sans text-[14px] text-on-surface-variant">
+          and press Enter. Scroll to watch what your laptop sends.
+        </span>
+      </motion.div>
+    </div>
+  );
+}
+
+function MessageCard({
+  m,
+  i,
+  progress,
+  flipped,
+  spring,
+  reduce,
+}: {
+  m: Msg;
+  i: number;
+  progress: MotionValue<number>;
+  flipped: boolean;
+  spring: { type: "spring"; stiffness: number; damping: number };
+  reduce: boolean;
+}) {
+  const [a, b] = SLICES[i];
+  const d = useTransform(progress, (p) => (reduce ? 1 : clamp01((p - a) / (b - a))));
+  const y = useTransform(d, (v) => `${-250 * v}%`);
+  const rotate = useTransform(d, (v) => TILT[i] + (DISMISS_TILT[i] - TILT[i]) * v);
+  const opacity = useTransform(d, (v) => 1 - Math.max(0, v - 0.7) / 0.3);
+
+  return (
+    <motion.div
+      className="absolute left-1/2 top-1/2"
+      style={{ width: CW, height: CH, marginLeft: -CW / 2, marginTop: -CH / 2, y, rotate, opacity }}
+    >
+      <motion.div
+        className="flex h-full w-full flex-col justify-between rounded-xl border-2 p-5 shadow-[0_18px_40px_rgba(0,0,0,0.3)] [backface-visibility:hidden]"
+        style={{ borderColor: m.color, background: "#2E604C" }}
+        initial={false}
+        animate={{ rotateY: flipped ? 0 : -180 }}
+        transition={reduce ? { duration: 0 } : { ...spring, delay: flipped ? i * 0.03 : 0 }}
+      >
+        <span className="font-label-caps text-[11px] uppercase text-on-surface-variant">Message {i + 1} of 7</span>
+        <span className="font-mono text-[30px] font-bold leading-tight" style={{ color: m.color }}>
+          {m.label}
+        </span>
+        <div className="flex items-center gap-2 font-sans text-[14px] text-on-surface">
+          <span className="rounded bg-surface-dim px-2 py-0.5">{m.from}</span>
+          <span style={{ color: m.color }}>→</span>
+          <span className="rounded bg-surface-dim px-2 py-0.5">{m.to}</span>
+        </div>
+        <span className="font-mono text-[13px] text-on-surface-variant">{m.note}</span>
+      </motion.div>
+    </motion.div>
   );
 }

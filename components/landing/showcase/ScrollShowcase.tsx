@@ -4,12 +4,11 @@
 // Unit 1 OsiStack: a readable step list on the left, an animation on the
 // right, and the page's own scroll moving you through the steps.
 //
-// Each unit only supplies its steps and a visual that draws step `active`.
-// The visual animates between discrete steps (springs, path drawing) rather
-// than being scrubbed pixel-by-pixel, so every intermediate frame is a
-// correct diagram — a half-scrolled network never shows a half-drawn table.
+// Each unit supplies its steps and a visual. Visuals get both the current
+// step and the raw scroll progress, so they can scrub continuously the way
+// the Animmaster ScrollTrigger effects they are adapted from do.
 
-import { useMotionValueEvent, useReducedMotion, useScroll } from "framer-motion";
+import { useMotionValueEvent, useReducedMotion, useScroll, type MotionValue } from "framer-motion";
 import Link from "next/link";
 import { useRef, useState, type ReactNode, type RefObject } from "react";
 import { Icon } from "@/components/ui/Icon";
@@ -30,9 +29,17 @@ interface ScrollShowcaseProps {
   steps: ShowStep[];
   href: string;
   cta: string;
-  /** Draws the animation for the given step. */
-  visual: (active: number, reduce: boolean) => ReactNode;
+  /**
+   * Draws the animation. `active` is the current step; `progress` is the raw
+   * 0–1 scroll through the section, for effects that scrub continuously
+   * (the Animmaster ScrollTrigger effects this site adapts are all scrubbed).
+   * Step i spans progress STEP_AT(i, n) … STEP_AT(i + 1, n).
+   */
+  visual: (active: number, reduce: boolean, progress: MotionValue<number>) => ReactNode;
 }
+
+/** Scroll progress at which step i (of n) begins — matches the list highlight. */
+export const STEP_AT = (i: number, n: number) => 0.03 + (i / n) * 0.9;
 
 export function ScrollShowcase({ scroller, eyebrow, title, blurb, steps, href, cta, visual }: ScrollShowcaseProps) {
   const reduce = useReducedMotion() ?? false;
@@ -48,7 +55,11 @@ export function ScrollShowcase({ scroller, eyebrow, title, blurb, steps, href, c
   const step = steps[shown];
 
   return (
-    <section ref={section} className={reduce ? "" : "relative"} style={reduce ? undefined : { height: `${n * 75 + 60}vh` }}>
+    <section
+      ref={section}
+      className={reduce ? "" : "relative"}
+      style={reduce ? undefined : { height: `${n * 75 + 60}vh` }}
+    >
       <div
         className={`${reduce ? "" : "sticky top-0 h-[calc(100dvh-64px)]"} mx-auto grid w-full max-w-6xl items-center gap-8 px-margin py-12 md:grid-cols-[minmax(0,5fr)_minmax(0,6fr)]`}
       >
@@ -72,7 +83,10 @@ export function ScrollShowcase({ scroller, eyebrow, title, blurb, steps, href, c
             ))}
           </ol>
 
-          <p aria-live="polite" className="mt-5 min-h-[48px] max-w-md font-sans text-[15px] leading-relaxed text-on-surface-variant">
+          <p
+            aria-live="polite"
+            className="mt-5 min-h-[48px] max-w-md font-sans text-[15px] leading-relaxed text-on-surface-variant"
+          >
             {step.detail}
           </p>
 
@@ -86,7 +100,7 @@ export function ScrollShowcase({ scroller, eyebrow, title, blurb, steps, href, c
         </div>
 
         <div aria-hidden className="order-1 flex items-center justify-center md:order-2">
-          <div className="origin-center scale-[0.72] md:scale-100">{visual(shown, reduce)}</div>
+          <div className="origin-center scale-[0.72] md:scale-100">{visual(shown, reduce, scrollYProgress)}</div>
         </div>
       </div>
     </section>
