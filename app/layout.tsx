@@ -46,7 +46,7 @@ export default function RootLayout({
 }>) {
   return (
     // Every font is self-hosted: next/font vendors Kalam, Atkinson and JetBrains Mono at
-    // build time, and Material Symbols is a local subset (see globals.css).
+    // build time, and icons are Phosphor SVGs bundled into the JS.
     // The app makes no network requests at runtime — it works with wifi off.
     <html lang="en" className="dark">
       <body

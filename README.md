@@ -30,8 +30,8 @@ npm run dev        # http://localhost:3000
 | `npm run lint` | ESLint |
 
 The app makes **no network requests at runtime**. Kalam and JetBrains Mono are
-vendored by `next/font` at build time, and Material Symbols is a local subset in
-`public/fonts`. It works with wifi off.
+vendored by `next/font` at build time, and icons are Phosphor SVG components
+bundled with the app. It works with wifi off.
 
 ---
 
@@ -101,7 +101,7 @@ Any topic can be bookmarked already in record mode:
   it off — the guide is a screen overlay and would otherwise be captured.
 - Set the browser to **fullscreen (`F`)** so no tab bar or bookmarks appear.
 - Fonts are licensed for commercial use: Kalam and JetBrains Mono under SIL OFL
-  1.1, Material Symbols under Apache 2.0.
+  1.1, Phosphor Icons under MIT.
 
 ---
 
