@@ -44,7 +44,7 @@ export function Hero({ built, total }: HeroProps) {
         className="pointer-events-none absolute inset-0 -z-10"
         style={{
           background:
-            "linear-gradient(90deg, rgba(22,52,42,0.92) 0%, rgba(22,52,42,0.55) 45%, rgba(22,52,42,0) 75%), linear-gradient(0deg, #16342A 0%, rgba(22,52,42,0) 35%)",
+            "linear-gradient(90deg, rgba(36,80,63,0.92) 0%, rgba(36,80,63,0.55) 45%, rgba(36,80,63,0) 75%), linear-gradient(0deg, #24503F 0%, rgba(36,80,63,0) 35%)",
         }}
       />
 

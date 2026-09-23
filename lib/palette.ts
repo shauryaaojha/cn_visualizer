@@ -19,26 +19,26 @@ export const PALETTE = {
   /** Success — delivered, converged, checksum OK. */
   ok: "#B9E39A",
   /** Failure — collision, drop, link down, bit error. */
-  fail: "#E39AA6",
+  fail: "#EDB0BA",
   /** The teacher's voice: annotations, notes, asides. */
   note: "#8FCBE0",
   /** Control plane / protocol messages (Units 3–5). */
   protocol: "#C9A8F5",
 
   /** An idle wire — chalk drawn faintly, not a bright line. */
-  wire: "#6E8F82",
+  wire: "#7FA293",
   /** The board itself, for punching holes through a drawn line. */
-  board: "#16342A",
-  boardDeep: "#12291F",
+  board: "#24503F",
+  boardDeep: "#1E4234",
   chalk: "#F3F1E7",
-  muted: "#9FB3AA",
+  muted: "#B8CBC2",
 } as const;
 
 /** Extra hues for VLSM-style multi-block diagrams (Unit 2 onward). */
 export const CHALK_SERIES = [
   "#F0D264",
   "#8FCBE0",
-  "#E39AA6",
+  "#EDB0BA",
   "#B9E39A",
   "#C9A8F5",
   "#F0A868",

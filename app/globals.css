@@ -3,13 +3,13 @@
 @tailwind utilities;
 
 :root {
-  --board: #16342a;
-  --board2: #1c3e32;
+  --board: #24503F;
+  --board2: #2A5A47;
   --chalk: #f3f1e7;
   --chalk-yellow: #f0d264;
   --chalk-blue: #8fcbe0;
-  --chalk-pink: #e39aa6;
-  --muted: #9fb3aa;
+  --chalk-pink: #EDB0BA;
+  --muted: #B8CBC2;
   --line: rgba(243, 241, 231, 0.22);
   --dust: rgba(243, 241, 231, 0.06);
 }
@@ -83,7 +83,7 @@ body {
      "hand-drawn" edges are kept for things drawn ON the board — the canvases —
      so the eye can tell the lesson apart from the furniture around it. */
   .glass-panel {
-    background: rgba(28, 62, 50, 0.72);
+    background: rgba(42, 90, 71, 0.72);
     backdrop-filter: blur(10px);
     -webkit-backdrop-filter: blur(10px);
     border: 1px solid var(--line);
@@ -118,7 +118,7 @@ body {
     height: 6px;
   }
   .scroll-thin::-webkit-scrollbar-thumb {
-    background: #3e5b4e;
+    background: #4E7A66;
     border-radius: 9999px;
   }
   .scroll-thin::-webkit-scrollbar-track {

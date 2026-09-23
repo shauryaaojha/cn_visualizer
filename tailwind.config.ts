@@ -32,26 +32,26 @@ const config: Config = {
     extend: {
       colors: {
         // --- the board ---
-        surface: "#16342A",
-        "surface-dim": "#12291F",
-        background: "#16342A",
-        "surface-container-lowest": "#12291F",
-        "surface-container-low": "#1C3E32",
-        "surface-container": "#1F4436",
-        "surface-container-high": "#26503F",
-        "surface-container-highest": "#2C5A47",
-        "surface-variant": "#26503F",
-        "surface-bright": "#2C5A47",
+        surface: "#24503F",
+        "surface-dim": "#1E4234",
+        background: "#24503F",
+        "surface-container-lowest": "#1E4234",
+        "surface-container-low": "#2A5A47",
+        "surface-container": "#2E604C",
+        "surface-container-high": "#356B55",
+        "surface-container-highest": "#3C765E",
+        "surface-variant": "#356B55",
+        "surface-bright": "#3C765E",
         "inverse-surface": "#F3F1E7",
-        "inverse-on-surface": "#1C3E32",
+        "inverse-on-surface": "#2A5A47",
         "on-background": "#F3F1E7",
         "on-surface": "#F3F1E7",
 
         // --- chalk yellow: the writing hand ---
         primary: "#F0D264",
-        "on-primary": "#16342A",
+        "on-primary": "#24503F",
         "primary-container": "#F0D264",
-        "on-primary-container": "#16342A",
+        "on-primary-container": "#24503F",
         "primary-fixed": "#F7E7A8",
         "primary-fixed-dim": "#F0D264",
         "on-primary-fixed": "#3A2F05",
@@ -60,35 +60,35 @@ const config: Config = {
         "surface-tint": "#F0D264",
 
         // --- chalk dust neutrals ---
-        "on-surface-variant": "#9FB3AA",
-        outline: "#6E8F82",
-        "outline-variant": "#3E5B4E",
+        "on-surface-variant": "#B8CBC2",
+        outline: "#7FA293",
+        "outline-variant": "#4E7A66",
 
         // --- secondary / tertiary ---
         secondary: "#D9DED4",
-        "on-secondary": "#1C3E32",
-        "secondary-container": "#2C5A47",
+        "on-secondary": "#2A5A47",
+        "secondary-container": "#3C765E",
         "on-secondary-container": "#D9DED4",
         "secondary-fixed": "#EAEDE6",
         "secondary-fixed-dim": "#D9DED4",
-        "on-secondary-fixed": "#12291F",
-        "on-secondary-fixed-variant": "#2C5A47",
+        "on-secondary-fixed": "#1E4234",
+        "on-secondary-fixed-variant": "#3C765E",
         tertiary: "#8FCBE0",
         "on-tertiary": "#0B2C38",
         "tertiary-container": "#8FCBE0",
         "on-tertiary-container": "#0B2C38",
 
         // --- error ---
-        error: "#E39AA6",
+        error: "#EDB0BA",
         "error-container": "#8C4450",
-        "on-error": "#16342A",
+        "on-error": "#24503F",
         "on-error-container": "#F7D6DC",
 
         // --- semantic accents ---
         signal: "#F0D264", // data / payload
         amber: "#F0A868", // control / decision / pending
         mint: "#B9E39A", // delivered / converged / OK
-        coral: "#E39AA6", // collision / drop / link down
+        coral: "#EDB0BA", // collision / drop / link down
         violet: "#C9A8F5", // control plane / protocol
         note: "#8FCBE0", // the teacher's voice
       },

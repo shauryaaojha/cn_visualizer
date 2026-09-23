@@ -171,13 +171,13 @@ function RayOpticsView({ data }: { data: NonNullable<import("@/types/visualizati
 
       <svg width={520} height={140} className="overflow-visible rounded border border-outline-variant/60 bg-surface-container-high/30">
         {/* Cladding top & bottom */}
-        <rect x={0} y={0} width={520} height={25} fill="#16342A" opacity={0.6} />
-        <rect x={0} y={115} width={520} height={25} fill="#16342A" opacity={0.6} />
+        <rect x={0} y={0} width={520} height={25} fill="#24503F" opacity={0.6} />
+        <rect x={0} y={115} width={520} height={25} fill="#24503F" opacity={0.6} />
         <line x1={0} y1={25} x2={520} y2={25} stroke={PALETTE.wire} strokeWidth={1.5} strokeDasharray="4 4" />
         <line x1={0} y1={115} x2={520} y2={115} stroke={PALETTE.wire} strokeWidth={1.5} strokeDasharray="4 4" />
 
         {/* Center Glass Core */}
-        <rect x={0} y={25} width={520} height={90} fill="#2C5A47" opacity={0.3} />
+        <rect x={0} y={25} width={520} height={90} fill="#3C765E" opacity={0.3} />
         <text x={10} y={40} fill={PALETTE.chalk} fontSize={10} fontFamily="monospace" opacity={0.6}>
           Glass Core (n1 = {data.coreIndex})
         </text>

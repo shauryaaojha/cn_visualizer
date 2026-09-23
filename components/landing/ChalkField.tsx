@@ -115,7 +115,7 @@ interface ChalkFieldProps {
   gain?: number;
 }
 
-export function ChalkField({ className, tint = "#F3F1E7", base = "#16342A", gain = 0.14 }: ChalkFieldProps) {
+export function ChalkField({ className, tint = "#F3F1E7", base = "#24503F", gain = 0.14 }: ChalkFieldProps) {
   const host = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
