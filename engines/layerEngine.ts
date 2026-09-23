@@ -12,7 +12,8 @@
 // five characters leave the machine as a 64-byte frame.
 // ---------------------------------------------------------------------------
 
-import type { LayerLane, LayerProgram, LayerStep, PduHeader } from "@/types/visualization";
+import type { LayerLane, LayerProgram, LayerStep, PduHeader, Prediction } from "@/types/visualization";
+import { LAYER_FACTS } from "./layerFacts.ts";
 
 export interface LayerRunParams {
   message: string;
@@ -121,6 +122,18 @@ function toBits(s: string): string {
 
 const PREAMBLE = "10101010 ".repeat(3) + "10101011";
 
+/**
+ * A Predict-mode question with the right answer placed at `slot` among the
+ * wrong ones — deterministic, so the same lesson asks the same way every
+ * time, but the answer is not always option 1.
+ */
+function ask(question: string, right: string, wrong: string[], why: string, slot: number): Prediction {
+  const options = wrong.filter((w) => w !== right).slice(0, 3);
+  const at = slot % (options.length + 1);
+  options.splice(at, 0, right);
+  return { question, options, answer: at, why };
+}
+
 function lanes(activeN: number, side: "sender" | "wire" | "receiver"): LayerLane[] {
   return LANES.map((l) => {
     let state: LayerLane["state"] = "idle";
@@ -144,6 +157,30 @@ function encapsulation(p: LayerRunParams): LayerProgram {
   const steps: LayerStep[] = [];
   const stack: PduHeader[] = []; // outermost first
 
+  const SENDER_ASK: Record<number, Prediction | undefined> = {
+    4: ask(
+      "Layer 4 is about to wrap the data. What is the result called?",
+      "A segment",
+      ["A packet", "A frame", "Bits"],
+      "Transport splits data into segments and stamps them with ports.",
+      1,
+    ),
+    3: ask(
+      "Which header does Layer 3 put on?",
+      "IP: source and destination addresses",
+      ["TCP: ports and sequence numbers", "Ethernet: MAC addresses", "FCS: a checksum"],
+      "The Network layer adds logical (IP) addresses so routers can forward it.",
+      2,
+    ),
+    2: ask(
+      "Layer 2 adds a header on the front. What does it add on the back?",
+      "An FCS checksum",
+      ["The destination IP", "The port number", "Nothing"],
+      "The trailer is a CRC over the whole frame so the receiver can spot flipped bits.",
+      0,
+    ),
+  };
+
   const push = (s: Omit<LayerStep, "lanes">) =>
     steps.push({ ...s, lanes: lanes(s.at, s.side) } as LayerStep);
 
@@ -155,6 +192,7 @@ function encapsulation(p: LayerRunParams): LayerProgram {
     payload: message,
     description: `You type "${message}" and hit send. ${bytes} character${bytes === 1 ? "" : "s"} — ${bytes} byte${bytes === 1 ? "" : "s"}. Right now it is just data, and it knows nothing about networks, addresses or cables.`,
     codeLines: [1, 2],
+    label: "send",
   });
 
   for (const n of [7, 6, 5, 4, 3, 2]) {
@@ -164,11 +202,13 @@ function encapsulation(p: LayerRunParams): LayerProgram {
     push({
       at: n,
       side: "sender",
+      label: `L${n}↓`,
+      predict: SENDER_ASK[n],
       headers: [...stack],
       payload: message,
       trailer: n === 2 ? FCS : undefined,
       addedId: h.id,
-      description: `Layer ${n} — ${lane.name}. ${h.note} The data is now called a ${lane.pduName.toLowerCase()}.`,
+      description: `Layer ${n} — ${lane.name}. ${h.note} ${lane.pduName === "Data" ? "It is still just data to the layers below." : `The data is now called a ${lane.pduName.toLowerCase()}.`}`,
       codeLines: n === 2 ? [3, 4, 5] : [3, 4],
       message:
         n === 2
@@ -184,9 +224,17 @@ function encapsulation(p: LayerRunParams): LayerProgram {
       headers: [...stack],
       payload: message,
       trailer: FCS,
-      description: `The frame is only ${framed} bytes and Ethernet will not transmit anything under ${MIN_FRAME_B}. ${padding} bytes of padding get added — bytes that carry nothing at all, purely so collision detection works on the wire.`,
+      label: "pad",
+      predict: ask(
+        `Your frame is ${framed} bytes. Ethernet's minimum is ${MIN_FRAME_B}. What happens?`,
+        `It is padded up to ${MIN_FRAME_B} bytes`,
+        ["It is rejected", "It is sent as it is", "It waits for more data"],
+        "A frame under 64 bytes could finish before a collision is even detected, so Ethernet pads it.",
+        3,
+      ),
+      description: `The frame is only ${framed} bytes and Ethernet will not transmit anything under ${MIN_FRAME_B}. ${padding} byte${padding === 1 ? "" : "s"} of padding get${padding === 1 ? "s" : ""} added — bytes that carry nothing at all, purely so collision detection works on the wire.`,
       codeLines: [6],
-      message: { text: `${padding} bytes of padding added`, tone: "warn" },
+      message: { text: `${padding} byte${padding === 1 ? "" : "s"} of padding added`, tone: "warn" },
     });
   }
 
@@ -197,6 +245,7 @@ function encapsulation(p: LayerRunParams): LayerProgram {
     payload: message,
     trailer: FCS,
     bits: wireBits,
+    label: "L1↓",
     description:
       "Layer 1 — Physical. The frame stops being a structure and becomes a signal: 1s and 0s as voltage on copper, pulses of light in fibre, or a modulated radio wave. Nothing on the cable knows what a header is.",
     codeLines: [7, 8],
@@ -205,6 +254,14 @@ function encapsulation(p: LayerRunParams): LayerProgram {
   push({
     at: 0,
     side: "wire",
+    label: "wire",
+    predict: ask(
+      `You sent ${bytes} byte${bytes === 1 ? "" : "s"}. How many bytes actually go on the wire?`,
+      `${onWire} bytes`,
+      [`${bytes} bytes`, `${framed} bytes`, `${bytes + OVERHEAD_B + 40} bytes`, "1500 bytes"],
+      `Payload + ${OVERHEAD_B} bytes of headers${padding > 0 ? ` + ${padding} of padding` : ""} = ${onWire}.`,
+      1,
+    ),
     headers: [...stack],
     payload: message,
     trailer: FCS,
@@ -222,6 +279,7 @@ function encapsulation(p: LayerRunParams): LayerProgram {
     payload: message,
     trailer: FCS,
     bits: wireBits,
+    label: "L1↑",
     description:
       "The receiver's Layer 1 samples the signal back into bits. It has no idea what they mean — it just hands them up.",
     codeLines: [11],
@@ -233,6 +291,14 @@ function encapsulation(p: LayerRunParams): LayerProgram {
     headers: [...stack],
     payload: message,
     trailer: FCS,
+    label: "FCS✓",
+    predict: ask(
+      "The frame has arrived. What does the receiver check before anything else?",
+      "The FCS: did any bit flip?",
+      ["The destination IP", "The destination port", "The message text"],
+      "Nothing inside a corrupted frame can be trusted, so the checksum comes first.",
+      2,
+    ),
     description:
       "Layer 2 recomputes the CRC and compares it against the FCS. They match, so nothing was corrupted in transit — and only now is it safe to look at what is inside.",
     codeLines: [12],
@@ -253,6 +319,17 @@ function encapsulation(p: LayerRunParams): LayerProgram {
     push({
       at: n,
       side: "receiver",
+      label: `L${n}↑`,
+      predict:
+        n === 4
+          ? ask(
+              "TCP is about to hand the data up. What tells it which application gets it?",
+              `Destination port ${p.dstPort}`,
+              [`Destination IP ${p.dstIp}`, "Destination MAC address", "The sequence number"],
+              "Ports identify the process; IP only got it to the right machine.",
+              0,
+            )
+          : undefined,
       headers: [...stack],
       payload: message,
       removedId: h.id,
@@ -266,6 +343,7 @@ function encapsulation(p: LayerRunParams): LayerProgram {
     side: "receiver",
     headers: [],
     payload: message,
+    label: "done",
     description: `"${message}" arrives — byte for byte what was sent. Every header added has been removed by the layer that added it. That mirror symmetry is the entire idea of a layered model.`,
     codeLines: [15],
     message: { text: `"${message}" delivered intact`, tone: "ok" },
@@ -307,23 +385,58 @@ function osiModel(p: LayerRunParams): LayerProgram {
     lanes: LANES.map((l) => ({ ...l, state: "idle" })),
     at: 7,
     side: "sender",
+    label: "overview",
     headers: [],
     payload: message,
-    description: "The Open Systems Interconnection (OSI) 7-layer reference model defines standard network communication into seven modular abstraction layers, ensuring interoperability across diverse vendor hardware.",
+    description:
+      "The OSI model splits networking into seven layers, each with one job and a clean hand-off to the next. Any vendor's layer can talk to any other's as long as both follow that layer's rules. Click any layer to inspect it.",
     codeLines: [1, 2, 3, 4, 5, 6, 7],
   });
+
+  const OSI_ASK: Record<number, Prediction> = {
+    7: ask("Which of these runs at Layer 7?", "HTTP", ["TCP", "IP", "Ethernet"], "HTTP is what your browser speaks.", 1),
+    6: ask(
+      "Which job belongs to Layer 6?",
+      "Encryption and character encoding",
+      ["Choosing a route", "Adding MAC addresses", "Numbering segments"],
+      "Presentation is the translator: format, compression, encryption.",
+      2,
+    ),
+    5: ask(
+      "What does the Session layer manage?",
+      "Opening and closing the conversation",
+      ["IP addresses", "Voltage levels", "The CRC"],
+      "Dialog control: who talks, checkpoints, and a clean close.",
+      0,
+    ),
+    4: ask("What does Layer 4 call its data?", "Segment", ["Packet", "Frame", "Bits"], "Transport makes segments.", 3),
+    3: ask("Which device works at Layer 3?", "Router", ["Switch", "Hub", "Repeater"], "Routers read IP addresses.", 1),
+    2: ask(
+      "Which address does Layer 2 use?",
+      "MAC address",
+      ["IP address", "Port number", "URL"],
+      "MAC addresses deliver a frame across one hop.",
+      2,
+    ),
+    1: ask("What does Layer 1 call its data?", "Bits", ["Frame", "Packet", "Segment"], "Physical just moves bits.", 0),
+  };
 
   // Layer-by-layer tour
   for (const lane of LANES) {
     const n = lane.n;
     const h = HEADERS[n];
+    const fact = LAYER_FACTS[lane.name];
+    const pduWord = lane.pduName === "Data" ? "data" : lane.pduName === "Bits" ? "bits" : `a ${lane.pduName.toLowerCase()}`;
     steps.push({
       lanes: LANES.map((l) => ({ ...l, state: l.n === n ? "active" : l.n > n ? "done" : "idle" })),
       at: n,
       side: "sender",
+      label: `L${n}`,
+      predict: OSI_ASK[n],
       headers: h ? [h] : [],
       payload: message,
-      description: `Layer ${n} — ${lane.name} Layer: ${lane.role}. Unit of data is called a '${lane.pduName}'. Associated devices and protocols are matched to this layer boundary.`,
+      bits: n === 1 ? toBits(message.slice(0, 8)) : undefined,
+      description: `Layer ${n}, ${lane.name}: ${fact.job} Its data is called ${pduWord}. You meet ${fact.protocols.slice(0, 3).join(", ")} here, on ${fact.devices.slice(0, 2).join(" and ").toLowerCase()}.`,
       codeLines: [8 - n],
       message: { text: `Layer ${n}: ${lane.name} (${lane.pduName})`, tone: "info" },
     });
@@ -371,6 +484,7 @@ function tcpIpModel(p: LayerRunParams): LayerProgram {
     side: "sender",
     headers: [],
     payload: message,
+    label: "overview",
     description: "The TCP/IP model (DoD / DARPA Internet Architecture) is the practical 4-layer foundation of the modern Internet. Rather than rigid 7 layers, it collapses presentation/session into Application and physical/data link into Network Access.",
     codeLines: [1, 2, 3, 4],
   });
@@ -382,6 +496,7 @@ function tcpIpModel(p: LayerRunParams): LayerProgram {
     side: "sender",
     headers: [],
     payload: message,
+    label: "App",
     description: "Layer 4 (Application): Handles application-level protocols like HTTP/3, DNS, and TLS directly in user space without separate presentation or session layers.",
     codeLines: [1],
   });
@@ -392,7 +507,16 @@ function tcpIpModel(p: LayerRunParams): LayerProgram {
     at: 3,
     side: "sender",
     headers: [tcpHeader],
+    addedId: "TCP",
     payload: message,
+    label: "Transport",
+    predict: ask(
+      "Which header does the Transport layer add?",
+      "TCP (or UDP)",
+      ["IP", "Ethernet", "TLS"],
+      "Transport is where ports live: TCP for reliable streams, UDP for datagrams.",
+      2,
+    ),
     description: `Layer 3 (Transport): TCP adds ports (${p.srcPort} → ${p.dstPort}), sequence numbers, flow control window, and checksums for reliable end-to-end delivery.`,
     codeLines: [2],
   });
@@ -402,8 +526,17 @@ function tcpIpModel(p: LayerRunParams): LayerProgram {
     lanes: TCPIP_LANES.map((l) => ({ ...l, state: l.n === 2 ? "active" : l.n > 2 ? "done" : "idle" })),
     at: 2,
     side: "sender",
-    headers: [ethHeader, ipHeader, tcpHeader],
+    headers: [ipHeader, tcpHeader],
+    addedId: "IP",
     payload: message,
+    label: "Internet",
+    predict: ask(
+      "The Internet layer lines up with which OSI layer?",
+      "Layer 3, Network",
+      ["Layer 2, Data Link", "Layer 4, Transport", "Layers 5 to 7"],
+      "Same job: IP addressing and routing.",
+      1,
+    ),
     description: `Layer 2 (Internet): IP encapsulates the segment with logical addressing (${p.srcIp} → ${p.dstIp}) and TTL. This is the universal internetworking glue.`,
     codeLines: [3],
   });
@@ -416,7 +549,16 @@ function tcpIpModel(p: LayerRunParams): LayerProgram {
     headers: [ethHeader, ipHeader, tcpHeader],
     payload: message,
     trailer: FCS,
-    bits: "01001000 01000101 01001100 01001100 01001111",
+    addedId: "ETH",
+    bits: toBits(message.slice(0, 8)),
+    label: "Net access",
+    predict: ask(
+      "Network Access covers which OSI layers?",
+      "Layers 2 and 1",
+      ["Layer 3 only", "Layers 4 and 3", "Layer 1 only"],
+      "Framing, MAC addressing and the physical signal, all in one TCP/IP layer.",
+      3,
+    ),
     description: "Layer 1 (Network Access): Encompasses device drivers, Ethernet MAC framing, and physical transceiver serialization onto copper, glass or radio waves.",
     codeLines: [4],
     message: { text: "TCP/IP 4-Layer Stack complete · Ready for wire", tone: "ok" },
