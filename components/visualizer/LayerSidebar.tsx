@@ -3,31 +3,12 @@
 // Type your own message and your own addressing, and the animation is about
 // your data: the bits on the wire are its real ASCII, the IPs and ports appear
 // inside the headers that carry them, and the overhead figures are recomputed
-// from what you actually sent.
+// from what you actually sent. (What each header means is on the stage now —
+// click any header to inspect it — so the old legend is gone from here.)
 
 import { Icon } from "@/components/ui/Icon";
 import { Field, NumberInput, TextInput } from "@/components/ui/Field";
-import { SidebarTabs } from "@/components/visualizer/SidebarTabs";
 import { useLayerStore } from "@/lib/layerStore";
-
-const LEGEND = [
-  {
-    label: "AH / PH / SH",
-    tone: "text-violet border-violet/50 bg-violet/10",
-    what: "OSI layers 7–6–5. In the real TCP/IP stack these three are one layer and add no header at all.",
-  },
-  { label: "TCP", tone: "text-amber border-amber/50 bg-amber/10", what: "Ports, sequence and ACK numbers. 20 bytes." },
-  {
-    label: "IP",
-    tone: "text-primary border-primary/50 bg-primary/10",
-    what: "Source and destination IP, TTL. 20 bytes — the only header routers read.",
-  },
-  {
-    label: "MAC / FCS",
-    tone: "text-mint border-mint/50 bg-mint/10",
-    what: "Local hop addressing plus a CRC. Rewritten at every hop.",
-  },
-];
 
 const IPV4 = /^(\d{1,3}\.){3}\d{1,3}$/;
 const validIp = (s: string) => IPV4.test(s) && s.split(".").every((o) => Number(o) <= 255);
@@ -41,10 +22,9 @@ export function LayerSidebar() {
       <div className="flex flex-1 flex-col gap-md p-md">
         <div className="flex items-center gap-2 border-b border-outline-variant pb-md">
           <Icon name="layers" className="text-[16px] text-primary" />
-          <h2 className="font-hand text-[21px] font-bold text-primary">Encapsulation</h2>
+          <h2 className="font-hand text-[21px] font-bold text-primary">Your packet</h2>
         </div>
 
-        <SidebarTabs />
 
         <Field label="Message" hint="Press Enter to send it down the stack. Its real ASCII appears on the wire.">
           <TextInput
@@ -88,24 +68,6 @@ export function LayerSidebar() {
               onCommit={(dstPort) => run({ dstPort })}
             />
           </Field>
-        </div>
-
-        <div>
-          <label className="mb-1.5 block font-label-caps text-[12px] uppercase tracking-[0.08em] text-on-surface-variant/70">
-            Headers
-          </label>
-          <div className="flex flex-col gap-1.5">
-            {LEGEND.map((l) => (
-              <div key={l.label} className="rounded-md border border-outline-variant px-2 py-1.5">
-                <span
-                  className={`inline-block rounded-sm border px-1.5 py-px font-mono text-[12px] font-bold ${l.tone}`}
-                >
-                  {l.label}
-                </span>
-                <p className="mt-1 font-body-sm text-[13px] leading-snug text-on-surface-variant/75">{l.what}</p>
-              </div>
-            ))}
-          </div>
         </div>
 
         <div className="rounded-md border-l-[3px] border-coral/70 bg-coral/[0.07] px-2.5 py-2">

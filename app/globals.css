@@ -162,6 +162,14 @@ body {
   cursor: pointer;
 }
 
+/* Bits streaming along the medium (LayerCanvas). Two copies of the string
+   sit side by side, so sliding each by its own width loops seamlessly. */
+@keyframes bitstream {
+  to {
+    transform: translateX(-100%);
+  }
+}
+
 /* Traffic flowing along an active link. */
 @keyframes wireFlow {
   to {
