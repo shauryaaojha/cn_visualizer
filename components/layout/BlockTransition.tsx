@@ -14,12 +14,9 @@
 //   then router.push; the reveal waits for the new pathname so the grid never
 //   lifts off a half-loaded page. A timer backs up every animation, so a
 //   throttled tab can never strand you behind the grid.
-// - Smoothness: the demo popped each block on in 50ms in pure random order,
-//   which reads as flicker. Here blocks arrive as a wave from wherever you
-//   clicked (distance + 30% random jitter keeps the demo's scattered
-//   character), and each one eases in over 260ms — growing from 40% to full
-//   size as it fades up — so the cover feels like one motion, not 400.
-//   Drawn at device pixel ratio so edges stay crisp.
+// - Look: the demo's own — blocks pop on in fully random order (60ms each,
+//   spread over 420ms). A smoother eased wave was tried and rejected; the
+//   crisp random pop is the intended style. Drawn at device pixel ratio.
 // - No dead air under the grid. The wait between "covered" and "revealed" is
 //   just the route loading, so every internal link is prefetched the moment
 //   the pointer reaches it (hover, focus or press). By the time the cover
@@ -36,13 +33,13 @@ import { useRecordStore } from "@/lib/recordStore";
 
 const BLOCK = 60;
 /** Time over which block start times are spread (demo: stagger amount 0.5s). */
-const SPREAD_MS = 360;
+const SPREAD_MS = 420;
 /** Each block's own ease-in (demo: a 0.05s pop). */
-const FADE_MS = 260;
+const FADE_MS = 60;
 const HOLD_MS = 0;
 /** How much of each block's start time is random rather than distance. */
-const JITTER = 0.3;
-const easeOut = (t: number) => 1 - Math.pow(1 - t, 3);
+const JITTER = 1;
+const easeOut = (t: number) => t;
 /** Deeper than any board surface, so the grid reads clearly over the page. */
 const BLOCK_FILL = "#132C22";
 /** If navigation stalls, uncover anyway rather than trap the user. */
@@ -116,7 +113,7 @@ export function BlockTransition() {
         const a = dir === "in" ? k : 1 - k;
         if (a <= 0.001) continue;
         // Grow from 40% on the way in; shrink back on the way out.
-        const size = BLOCK * (0.4 + 0.6 * a);
+        const size = BLOCK;
         const x = g.ox + c * BLOCK + (BLOCK - size) / 2;
         const y = g.oy + r * BLOCK + (BLOCK - size) / 2;
         ctx.globalAlpha = a;
