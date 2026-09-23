@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Icon } from "@/components/ui/Icon";
+import { SyllabusMenu } from "@/components/layout/SyllabusMenu";
 import { SECTIONS } from "@/data/curriculum";
 
 export function Navbar() {
@@ -29,13 +29,7 @@ export function Navbar() {
       </div>
 
       <div className="flex items-center gap-4">
-        <Link
-          href="/topics/fundamentals"
-          className="flex items-center gap-1.5 rounded-md border border-primary px-4 py-1.5 font-sans text-[14px] font-bold text-primary transition-colors hover:bg-primary hover:text-surface active:scale-95"
-        >
-          <Icon name="explore" className="text-[16px]" />
-          <span className="hidden sm:inline">Explore</span>
-        </Link>
+        <SyllabusMenu />
       </div>
     </nav>
   );

@@ -21,6 +21,9 @@ const atkinson = Atkinson_Hyperlegible_Next({
   weight: ["400", "500", "600", "700"],
   variable: "--font-atkinson",
   display: "swap",
+  // next/font has no metric overrides for this family yet; without this it
+  // warns on every compile.
+  adjustFontFallback: false,
 });
 
 const jetbrainsMono = JetBrains_Mono({
