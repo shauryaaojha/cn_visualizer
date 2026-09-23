@@ -15,7 +15,7 @@
 //   lifts off a half-loaded page. A timer backs up every animation, so a
 //   throttled tab can never strand you behind the grid.
 // - Look: the demo's own — blocks pop on in fully random order (60ms each,
-//   spread over 420ms). A smoother eased wave was tried and rejected; the
+//   spread over 220ms, faster than the demo). A smoother eased wave was tried and rejected; the
 //   crisp random pop is the intended style. Drawn at device pixel ratio.
 // - No dead air under the grid. The wait between "covered" and "revealed" is
 //   just the route loading, so every internal link is prefetched the moment
@@ -33,9 +33,9 @@ import { useRecordStore } from "@/lib/recordStore";
 
 const BLOCK = 60;
 /** Time over which block start times are spread (demo: stagger amount 0.5s). */
-const SPREAD_MS = 420;
+const SPREAD_MS = 220;
 /** Each block's own ease-in (demo: a 0.05s pop). */
-const FADE_MS = 60;
+const FADE_MS = 40;
 const HOLD_MS = 0;
 /** How much of each block's start time is random rather than distance. */
 const JITTER = 1;
