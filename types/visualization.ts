@@ -47,6 +47,20 @@ export interface StepMessage {
   tone: "ok" | "error" | "info" | "warn";
 }
 
+/**
+ * A question asked *before* a frame is revealed, when Predict mode is on.
+ * The student commits to an answer, then the frame shows whether they were
+ * right — retrieval first, explanation second.
+ */
+export interface Prediction {
+  question: string;
+  options: string[];
+  /** Index into `options`. */
+  answer: number;
+  /** One line shown after answering — why the right answer is right. */
+  why?: string;
+}
+
 /** Everything every frame carries, whatever the engine. */
 export interface BaseStep {
   /** Instructor-note sentence describing what is happening this frame. */
@@ -54,6 +68,10 @@ export interface BaseStep {
   /** 1-based pseudocode/config line numbers to light up. */
   codeLines?: number[];
   message?: StepMessage;
+  /** Short name for this frame on the timeline — "L4 ↓", "wire", "FCS ✓". */
+  label?: string;
+  /** Asked before this frame is shown, when Predict mode is on. */
+  predict?: Prediction;
 }
 
 /**

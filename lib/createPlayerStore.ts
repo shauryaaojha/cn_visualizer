@@ -30,6 +30,17 @@ export interface PlayerSnapshot {
   toStart: () => void;
   toEnd: () => void;
   setSpeed: (speed: number) => void;
+  /** Jump straight to a frame — the timeline and clickable canvases use it. */
+  seek: (index: number) => void;
+  /**
+   * A frame waiting on a Predict-mode answer, or null. Set when forward motion
+   * (Next or autoplay) reaches a frame the gate refuses; cleared by `release`.
+   */
+  pending: number | null;
+  /** Installs the Predict-mode gate; null removes it. */
+  setGate: (gate: ((index: number) => boolean) | null) => void;
+  /** The gate said yes now — move onto the pending frame. */
+  release: () => void;
 }
 
 export interface PlayerState<S extends BaseStep, P> extends PlayerSnapshot {
@@ -50,6 +61,16 @@ export function createPlayerStore<S extends BaseStep, P extends object>(
   return create<PlayerState<S, P>>((set, get) => {
     // Per-store, so two visualizers on one page would not fight over a timer.
     let timer: ReturnType<typeof setTimeout> | null = null;
+    // Predict mode's veto over forward motion. Seeking and stepping back are
+    // never gated: those are deliberate jumps, not "what happens next?".
+    let gate: ((index: number) => boolean) | null = null;
+    /** True if moving onto `next` may proceed; otherwise parks it as pending. */
+    const allowed = (next: number) => {
+      if (!gate || gate(next)) return true;
+      clearT();
+      set({ isPlaying: false, pending: next });
+      return false;
+    };
     const clearT = () => {
       if (timer) {
         clearTimeout(timer);
@@ -69,6 +90,7 @@ export function createPlayerStore<S extends BaseStep, P extends object>(
           clearT();
           return;
         }
+        if (!allowed(s.stepIndex + 1)) return;
         set({ stepIndex: s.stepIndex + 1 });
         scheduleTick();
       }, BASE_DELAY / speed);
@@ -80,6 +102,7 @@ export function createPlayerStore<S extends BaseStep, P extends object>(
       stepIndex: 0,
       isPlaying: false,
       speed: 1,
+      pending: null,
 
       currentStep: () => {
         const { program, stepIndex } = get();
@@ -92,7 +115,7 @@ export function createPlayerStore<S extends BaseStep, P extends object>(
       run: (p) => {
         clearT();
         const merged = { ...get().params, ...p };
-        set({ params: merged, program: compile(merged), stepIndex: 0, isPlaying: false });
+        set({ params: merged, program: compile(merged), stepIndex: 0, isPlaying: false, pending: null });
         get().play();
       },
 
@@ -116,20 +139,37 @@ export function createPlayerStore<S extends BaseStep, P extends object>(
         clearT();
         const { program, stepIndex } = get();
         if (!program) return;
-        set({ isPlaying: false, stepIndex: Math.min(stepIndex + 1, program.steps.length - 1) });
+        const next = Math.min(stepIndex + 1, program.steps.length - 1);
+        if (next !== stepIndex && !allowed(next)) return;
+        set({ isPlaying: false, stepIndex: next, pending: null });
       },
       stepBack: () => {
         clearT();
-        set({ isPlaying: false, stepIndex: Math.max(get().stepIndex - 1, 0) });
+        set({ isPlaying: false, stepIndex: Math.max(get().stepIndex - 1, 0), pending: null });
       },
       toStart: () => {
         clearT();
-        set({ isPlaying: false, stepIndex: 0 });
+        set({ isPlaying: false, stepIndex: 0, pending: null });
       },
       toEnd: () => {
         clearT();
         const { program } = get();
-        if (program) set({ isPlaying: false, stepIndex: program.steps.length - 1 });
+        if (program) set({ isPlaying: false, stepIndex: program.steps.length - 1, pending: null });
+      },
+      seek: (index) => {
+        clearT();
+        const { program } = get();
+        if (!program) return;
+        set({ isPlaying: false, pending: null, stepIndex: Math.min(Math.max(index, 0), program.steps.length - 1) });
+      },
+      setGate: (g) => {
+        gate = g;
+        if (!g) set({ pending: null });
+      },
+      release: () => {
+        const { pending } = get();
+        if (pending === null) return;
+        set({ stepIndex: pending, pending: null });
       },
       setSpeed: (speed) => {
         set({ speed });
