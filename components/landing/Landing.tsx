@@ -5,7 +5,9 @@
 //   1. Hero        — what this is, how much of it exists, where to start.
 //   2. Units       — the syllabus as a ruled list with honest progress.
 //   3. Strip       — every visualizer that runs today, one drag away.
-//   4. OSI stack   — one taste of how the lessons move.
+//   4. One "how it works" per unit, each driven by scroll:
+//        Unit 1 build the stack · Unit 2 carve the address · Unit 3 find the
+//        path · Unit 4 catch the error · Unit 5 shake hands
 //
 // The landing page scrolls inside its own container (the body is
 // overflow:hidden for the app shell), so the scroll-linked stack is handed that
@@ -17,6 +19,11 @@ import { BoardBackground } from "@/components/layout/BoardBackground";
 import { Navbar } from "@/components/layout/Navbar";
 import { Hero } from "@/components/landing/Hero";
 import { OsiStack } from "@/components/landing/OsiStack";
+import { CarveAddress, CARVE_STEPS } from "@/components/landing/showcase/CarveAddress";
+import { CatchError, ERROR_STEPS } from "@/components/landing/showcase/CatchError";
+import { FindPath, PATH_STEPS } from "@/components/landing/showcase/FindPath";
+import { ScrollShowcase } from "@/components/landing/showcase/ScrollShowcase";
+import { HANDSHAKE_STEPS, ShakeHands } from "@/components/landing/showcase/ShakeHands";
 import { VisualizerStrip } from "@/components/landing/VisualizerStrip";
 import { Icon } from "@/components/ui/Icon";
 import { SECTIONS, leavesOfSection } from "@/data/curriculum";
@@ -120,6 +127,47 @@ export function Landing() {
 
         {/* 4 — OSI stack */}
         <OsiStack scroller={scroller} />
+
+        <ScrollShowcase
+          scroller={scroller}
+          eyebrow="Unit 2 · Addressing"
+          title="Carve the address."
+          blurb="One IPv4 address, split by a mask, borrowed from, and sized to fit — the whole of subnetting in four moves."
+          steps={CARVE_STEPS}
+          href="/topics/addressing"
+          cta="Open Unit 2"
+          visual={(i) => <CarveAddress active={i} />}
+        />
+        <ScrollShowcase
+          scroller={scroller}
+          eyebrow="Unit 3 · Routing"
+          title="Find the path."
+          blurb="Six routers, none of which can see the whole map, still agree on the cheapest route — and find a new one when a link dies."
+          steps={PATH_STEPS}
+          href="/topics/routing"
+          cta="Open Unit 3"
+          visual={(i) => <FindPath active={i} />}
+        />
+        <ScrollShowcase
+          scroller={scroller}
+          eyebrow="Unit 4 · Data Link"
+          title="Catch the error."
+          blurb="One frame, one flipped bit, and the checksum that notices — error control is refusing bad frames and asking again."
+          steps={ERROR_STEPS}
+          href="/topics/data-link"
+          cta="See Unit 4"
+          visual={(i) => <CatchError active={i} />}
+        />
+        <ScrollShowcase
+          scroller={scroller}
+          eyebrow="Unit 5 · Transport & Application"
+          title="Shake hands."
+          blurb="Everything that happens between typing a name and seeing a page: DNS, TCP's handshake, then HTTP."
+          steps={HANDSHAKE_STEPS}
+          href="/topics/transport-application"
+          cta="See Unit 5"
+          visual={(i) => <ShakeHands active={i} />}
+        />
 
         <footer className="mx-auto flex w-full max-w-6xl flex-col gap-2 border-t border-outline-variant px-margin py-10 font-sans text-[14px] text-on-surface-variant md:flex-row md:justify-between">
           <span>CN_Visualizer · 21CSC302J Computer Networks</span>
