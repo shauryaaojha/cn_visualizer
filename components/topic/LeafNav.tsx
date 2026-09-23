@@ -16,7 +16,7 @@ export function LeafNav() {
   if (indexInUnit < 0) return null;
 
   const cls =
-    "flex items-center gap-1 rounded-md border-[1.5px] border-dashed border-outline-variant px-2 py-1 font-hand text-[12.5px] font-bold text-on-surface-variant transition-colors hover:border-primary hover:text-primary";
+    "flex items-center gap-1 rounded-md border border-outline-variant px-2 py-1 font-sans text-[13px] font-bold text-on-surface-variant transition-colors hover:border-primary hover:text-primary";
 
   return (
     <div className="flex items-center gap-2">
@@ -29,7 +29,7 @@ export function LeafNav() {
         <span className="w-px" />
       )}
 
-      <span className="whitespace-nowrap font-mono text-[10px] text-on-surface-variant/55">
+      <span className="whitespace-nowrap font-mono text-[12px] text-on-surface-variant/55">
         {indexInUnit + 1} / {builtInUnit}
       </span>
 

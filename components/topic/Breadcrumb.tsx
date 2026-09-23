@@ -12,7 +12,7 @@ export function Breadcrumb({ path }: { path: string }) {
   }));
 
   return (
-    <nav className="flex flex-wrap items-center gap-1 font-label-caps text-[11px] tracking-wide">
+    <nav className="flex flex-wrap items-center gap-1 font-label-caps text-[13px] tracking-wide">
       <Link href="/" className="text-on-surface-variant/70 transition-colors hover:text-primary">
         <Icon name="home" className="text-[14px]" />
       </Link>

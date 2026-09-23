@@ -13,10 +13,14 @@ import type { Config } from "tailwindcss";
 //   coral    chalk pink    failure — collision, drop, link down, bit error
 //   tertiary chalk blue    the teacher's voice — notes, annotations, asides
 //
-// Type follows vis.html's split exactly: Kalam (handwriting) for anything a
-// person says — headings, prose, buttons — and JetBrains Mono for anything a
-// machine says — addresses, bits, tables, code, labels. That contrast is what
-// makes it read as a lesson rather than a dashboard.
+// Type is a three-way split. Kalam (handwriting) is the teacher at the board —
+// headings only, where it has room to be charming. Atkinson Hyperlegible is
+// the reading voice — prose, notes, buttons. JetBrains Mono is anything the
+// network says — addresses, bits, tables, code, labels.
+//
+// Scale: 1.25 ratio off a 16px body. Nothing a person needs to read is below
+// 12px; the old 9–11px labels were illegible on a laptop and vanished
+// entirely in a compressed recording.
 
 const config: Config = {
   darkMode: "class",
@@ -110,26 +114,27 @@ const config: Config = {
         "headline-lg": ["var(--font-kalam)", "Kalam", "cursive"],
         "headline-md": ["var(--font-kalam)", "Kalam", "cursive"],
         "headline-sm": ["var(--font-kalam)", "Kalam", "cursive"],
-        "body-lg": ["var(--font-kalam)", "Kalam", "cursive"],
-        "body-md": ["var(--font-kalam)", "Kalam", "cursive"],
-        "body-sm": ["var(--font-kalam)", "Kalam", "cursive"],
+        "body-lg": ["var(--font-atkinson)", "Atkinson Hyperlegible Next", "system-ui", "sans-serif"],
+        "body-md": ["var(--font-atkinson)", "Atkinson Hyperlegible Next", "system-ui", "sans-serif"],
+        "body-sm": ["var(--font-atkinson)", "Atkinson Hyperlegible Next", "system-ui", "sans-serif"],
         hand: ["var(--font-kalam)", "Kalam", "cursive"],
+        // The reading voice — prose, notes, buttons.
+        sans: ["var(--font-atkinson)", "Atkinson Hyperlegible Next", "system-ui", "sans-serif"],
         // Machine type — anything the network says.
         mono: ["var(--font-jetbrains-mono)", "JetBrains Mono", "monospace"],
         "label-caps": ["var(--font-jetbrains-mono)", "JetBrains Mono", "monospace"],
         "code-snippet": ["var(--font-jetbrains-mono)", "JetBrains Mono", "monospace"],
       },
       fontSize: {
-        // Kalam runs small for its point size, so the prose sizes are nudged up.
-        "body-lg": ["19px", { lineHeight: "1.55", fontWeight: "400" }],
-        "body-md": ["15px", { lineHeight: "1.5", fontWeight: "400" }],
-        "body-sm": ["13px", { lineHeight: "1.45", fontWeight: "400" }],
-        "label-caps": ["10px", { lineHeight: "1.0", letterSpacing: "0.1em", fontWeight: "600" }],
-        "code-snippet": ["12px", { lineHeight: "1.5", fontWeight: "400" }],
-        "headline-xl": ["42px", { lineHeight: "1.15", fontWeight: "700" }],
-        "headline-lg": ["34px", { lineHeight: "1.2", fontWeight: "700" }],
-        "headline-md": ["25px", { lineHeight: "1.3", fontWeight: "700" }],
-        "headline-sm": ["19px", { lineHeight: "1.3", fontWeight: "700" }],
+        "body-lg": ["18px", { lineHeight: "1.6", fontWeight: "400" }],
+        "body-md": ["16px", { lineHeight: "1.55", fontWeight: "400" }],
+        "body-sm": ["14px", { lineHeight: "1.5", fontWeight: "400" }],
+        "label-caps": ["12px", { lineHeight: "1.2", letterSpacing: "0.08em", fontWeight: "600" }],
+        "code-snippet": ["13px", { lineHeight: "1.5", fontWeight: "400" }],
+        "headline-xl": ["clamp(44px, 6vw, 76px)", { lineHeight: "1.02", fontWeight: "700", letterSpacing: "-0.01em" }],
+        "headline-lg": ["40px", { lineHeight: "1.1", fontWeight: "700" }],
+        "headline-md": ["28px", { lineHeight: "1.2", fontWeight: "700" }],
+        "headline-sm": ["21px", { lineHeight: "1.3", fontWeight: "700" }],
       },
     },
   },

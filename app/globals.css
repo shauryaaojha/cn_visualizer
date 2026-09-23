@@ -18,6 +18,21 @@ html {
   color-scheme: dark;
 }
 
+:focus-visible {
+  outline: 2px solid var(--chalk-yellow);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
 /* The board: faint ruled lines, a wash of light from above, green underneath. */
 body {
   color: var(--chalk);
@@ -64,17 +79,19 @@ body {
 }
 
 @layer components {
-  /* Chalk does not draw crisp rectangles — every panel edge is a dashed
-     hand-drawn line, which is what sells the whole metaphor. */
+  /* Panels are the board's frame, not chalk: a quiet solid hairline. Dashed
+     "hand-drawn" edges are kept for things drawn ON the board — the canvases —
+     so the eye can tell the lesson apart from the furniture around it. */
   .glass-panel {
     background: rgba(28, 62, 50, 0.72);
     backdrop-filter: blur(10px);
     -webkit-backdrop-filter: blur(10px);
-    border: 1.5px dashed var(--line);
+    border: 1px solid var(--line);
+    box-shadow: inset 0 1px 0 rgba(243, 241, 231, 0.05);
   }
 
   .chalk-edge {
-    border: 1.5px dashed var(--line);
+    border: 1px solid var(--line);
   }
 
   /* The yellow rule that gets drawn under a heading as you arrive. */

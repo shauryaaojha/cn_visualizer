@@ -30,7 +30,7 @@ export function PseudocodeBlock({
 
   return (
     <pre
-      className={`scroll-thin overflow-x-auto rounded-md border-[1.5px] border-dashed border-outline-variant bg-black/20 p-2 font-code-snippet leading-relaxed ${className}`}
+      className={`scroll-thin overflow-x-auto rounded-md border border-outline-variant bg-black/20 p-2 font-code-snippet leading-relaxed ${className}`}
       style={{ fontSize }}
     >
       {pseudocode.map((line, i) => {

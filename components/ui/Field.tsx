@@ -20,17 +20,17 @@ export function Field({
 }) {
   return (
     <div className="flex flex-col gap-1">
-      <label className="font-label-caps text-[9px] uppercase tracking-[0.08em] text-on-surface-variant/70">
+      <label className="font-label-caps text-[12px] uppercase tracking-[0.08em] text-on-surface-variant/70">
         {label}
       </label>
       {children}
-      {hint && <p className="font-body-sm text-[11px] leading-snug text-on-surface-variant/60">{hint}</p>}
+      {hint && <p className="font-body-sm text-[13px] leading-snug text-on-surface-variant/60">{hint}</p>}
     </div>
   );
 }
 
 const BOX =
-  "w-full rounded-md border-[1.5px] border-dashed border-outline-variant bg-black/20 px-2 py-1.5 font-mono text-[12px] text-on-surface outline-none transition-colors focus:border-primary";
+  "w-full rounded-md border border-outline-variant bg-black/20 px-2 py-1.5 font-mono text-[13px] text-on-surface outline-none transition-colors focus:border-primary";
 
 export function TextInput({
   value,
@@ -115,7 +115,7 @@ export function NumberInput({
         className={`${BOX} ${suffix ? "pr-10" : ""}`}
       />
       {suffix && (
-        <span className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 font-mono text-[10px] text-on-surface-variant/50">
+        <span className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 font-mono text-[12px] text-on-surface-variant/50">
           {suffix}
         </span>
       )}
@@ -168,10 +168,10 @@ export function Chips<T extends string | number>({
             key={String(o.value)}
             title={o.title ?? o.label}
             onClick={() => onChange(o.value)}
-            className={`rounded-md border-[1.5px] px-1 py-1 font-mono text-[11px] transition-colors ${
+            className={`rounded-md border px-1 py-1 font-mono text-[13px] transition-colors ${
               on
                 ? "border-primary bg-primary/15 text-primary"
-                : "border-dashed border-outline-variant text-on-surface-variant hover:border-primary/60 hover:text-on-surface"
+                : " border-outline-variant text-on-surface-variant hover:border-primary/60 hover:text-on-surface"
             }`}
           >
             {o.label}

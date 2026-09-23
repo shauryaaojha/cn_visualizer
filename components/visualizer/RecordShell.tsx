@@ -81,7 +81,7 @@ export function RecordShell({
 
       {/* Caption — fixed height, so the frame never jumps between steps. */}
       {captions && (
-        <div className="mx-10 mb-4 flex h-[132px] shrink-0 items-center gap-4 rounded-lg border-[2.5px] border-dashed border-note/60 bg-note/[0.08] px-6 backdrop-blur-sm">
+        <div className="mx-10 mb-4 flex h-[132px] shrink-0 items-center gap-4 rounded-lg border-[2.5px] border-note/60 bg-note/[0.08] px-6 backdrop-blur-sm">
           <span className="shrink-0 text-[30px] leading-none">👨‍🏫</span>
           <p className="scroll-thin max-h-[112px] overflow-y-auto font-body-lg text-[21px] leading-[1.45] text-on-surface">
             {current?.description ?? "Press Play to begin."}
@@ -96,12 +96,12 @@ export function RecordShell({
         }`}
         style={captions ? { bottom: 148 } : undefined}
       >
-        <div className="pointer-events-auto flex items-center gap-2 rounded-full border-[2px] border-dashed border-outline-variant bg-surface-container/90 px-3 py-2 backdrop-blur-md">
+        <div className="pointer-events-auto flex items-center gap-2 rounded-full border-[2px] border-outline-variant bg-surface-container/90 px-3 py-2 backdrop-blur-md">
           <RBtn icon="skip_previous" label="First" onClick={s.toStart} />
           <RBtn icon="fast_rewind" label="Back" onClick={s.stepBack} />
           <button
             onClick={s.togglePlay}
-            className="flex items-center gap-1.5 rounded-full border-[2px] border-primary px-5 py-1.5 font-hand text-[17px] font-bold text-primary transition-colors hover:bg-primary hover:text-surface"
+            className="flex items-center gap-1.5 rounded-full border-[2px] border-primary px-5 py-1.5 font-hand text-[21px] font-bold text-primary transition-colors hover:bg-primary hover:text-surface"
           >
             <Icon name={s.isPlaying ? "pause" : "play_arrow"} className="text-[22px]" />
             {s.isPlaying ? "Pause" : "Play"}
@@ -122,8 +122,8 @@ export function RecordShell({
       {/* 16:9 framing guide — align the capture once, then leave it on every topic. */}
       {guide && (
         <div className="pointer-events-none fixed inset-0 z-[70] flex items-center justify-center">
-          <div className="aspect-video h-full max-h-full w-full max-w-full border-2 border-dashed border-coral/50">
-            <span className="absolute left-2 top-2 rounded bg-coral/20 px-2 py-0.5 font-mono text-[11px] text-coral">
+          <div className="aspect-video h-full max-h-full w-full max-w-full border-2 border-coral/50">
+            <span className="absolute left-2 top-2 rounded bg-coral/20 px-2 py-0.5 font-mono text-[13px] text-coral">
               16:9 guide — G to hide
             </span>
           </div>

@@ -29,7 +29,7 @@ export function PlayerControls({ use }: { use: () => PlayerSnapshot }) {
   const pct = hasProgram ? ((s.stepIndex + 1) / total) * 100 : 0;
 
   return (
-    <div className="shrink-0 border-t-[1.5px] border-dashed border-outline-variant bg-surface-container-low/40">
+    <div className="shrink-0 border-t border-outline-variant bg-surface-container-low/40">
       {/* How far through the lesson you are. */}
       <div className="h-[3px] w-full bg-white/[0.06]">
         <div
@@ -46,7 +46,7 @@ export function PlayerControls({ use }: { use: () => PlayerSnapshot }) {
             onClick={s.togglePlay}
             disabled={!hasProgram}
             title={s.isPlaying ? "Pause" : "Play"}
-            className="flex items-center gap-1 rounded-md border-[1.5px] border-primary px-4 py-1 font-hand text-[14px] font-bold text-primary transition-colors hover:bg-primary hover:text-surface disabled:cursor-not-allowed disabled:opacity-35"
+            className="flex items-center gap-1 rounded-md border border-primary px-4 py-1 font-sans text-[14px] font-bold text-primary transition-colors hover:bg-primary hover:text-surface disabled:cursor-not-allowed disabled:opacity-35"
           >
             <Icon name={s.isPlaying ? "pause" : "play_arrow"} className="text-[17px]" />
             {s.isPlaying ? "Pause" : "Play"}
@@ -68,9 +68,9 @@ export function PlayerControls({ use }: { use: () => PlayerSnapshot }) {
             aria-label="Playback speed"
             className="speed-slider h-1 w-16 cursor-pointer appearance-none rounded-full bg-white/10 accent-primary"
           />
-          <span className="w-6 shrink-0 font-mono text-[11px] font-bold text-on-surface-variant">{s.speed}x</span>
+          <span className="w-6 shrink-0 font-mono text-[13px] font-bold text-on-surface-variant">{s.speed}x</span>
           {hasProgram && (
-            <span className="ml-1 whitespace-nowrap font-mono text-[11px] text-on-surface-variant/70">
+            <span className="ml-1 whitespace-nowrap font-mono text-[13px] text-on-surface-variant/70">
               {s.stepIndex + 1}/{total}
             </span>
           )}
@@ -83,7 +83,7 @@ export function PlayerControls({ use }: { use: () => PlayerSnapshot }) {
               <div
                 key={st.label}
                 title={st.label}
-                className={`flex shrink-0 items-center gap-1.5 rounded-md border-[1.5px] border-dashed px-2 py-0.5 font-code-snippet text-[11px] ${
+                className={`flex shrink-0 items-center gap-1.5 rounded-md border px-2 py-0.5 font-code-snippet text-[13px] ${
                   TONE[st.tone ?? "signal"]
                 }`}
               >
@@ -114,7 +114,7 @@ function Btn({
       title={label}
       onClick={onClick}
       disabled={disabled}
-      className="flex items-center gap-1 rounded-md border-[1.5px] border-on-surface/70 px-2.5 py-1 font-hand text-[13px] font-bold text-on-surface transition-colors hover:bg-on-surface hover:text-surface disabled:cursor-not-allowed disabled:opacity-35"
+      className="flex items-center gap-1 rounded-md border border-on-surface/70 px-2.5 py-1 font-sans text-[14px] font-bold text-on-surface transition-colors hover:bg-on-surface hover:text-surface disabled:cursor-not-allowed disabled:opacity-35"
     >
       <Icon name={icon} className="text-[15px]" />
       <span className="hidden md:inline">{label}</span>

@@ -36,16 +36,16 @@ export function LessonNote({ use }: { use: () => PlayerSnapshot }) {
   }, [s.stepIndex, tab]);
 
   return (
-    <div className="flex h-[188px] shrink-0 flex-col border-t-[1.5px] border-dashed border-outline-variant bg-surface-container-low/70 backdrop-blur-md sm:h-[172px]">
+    <div className="flex h-[188px] shrink-0 flex-col border-t border-outline-variant bg-surface-container-low/70 backdrop-blur-md sm:h-[172px]">
       {/* Tabs */}
-      <div className="flex shrink-0 items-center gap-1 border-b-[1.5px] border-dashed border-outline-variant/60 px-3 pt-1.5">
+      <div className="flex shrink-0 items-center gap-1 border-b border-outline-variant/60 px-3 pt-1.5">
         {TABS.map((t) => {
           const on = t.id === tab;
           return (
             <button
               key={t.id}
               onClick={() => setTab(t.id)}
-              className={`flex items-center gap-1.5 rounded-t-md border-[1.5px] border-b-0 px-2.5 py-1 font-hand text-[13px] font-bold transition-colors ${
+              className={`flex items-center gap-1.5 rounded-t-md border border-b-0 px-2.5 py-1 font-sans text-[14px] font-bold transition-colors ${
                 on
                   ? "border-note/60 bg-note/[0.09] text-note"
                   : "border-transparent text-on-surface-variant/60 hover:text-on-surface"
@@ -57,7 +57,7 @@ export function LessonNote({ use }: { use: () => PlayerSnapshot }) {
           );
         })}
         {program && (
-          <span className="ml-auto pb-1 font-mono text-[10px] text-on-surface-variant/55">
+          <span className="ml-auto pb-1 font-mono text-[12px] text-on-surface-variant/55">
             step {s.stepIndex + 1} of {steps.length}
           </span>
         )}
@@ -84,13 +84,13 @@ export function LessonNote({ use }: { use: () => PlayerSnapshot }) {
                 <div
                   key={i}
                   ref={isCurrent ? activeRef : undefined}
-                  className={`rounded-md border-[1.5px] border-dashed px-2 py-1.5 transition-all ${
+                  className={`rounded-md border px-2 py-1.5 transition-all ${
                     isCurrent ? "border-primary/70 bg-primary/10" : "border-outline-variant/50 opacity-60"
                   }`}
                 >
-                  <p className="font-body-sm text-[12.5px] leading-relaxed">
+                  <p className="font-body-sm text-[13px] leading-relaxed">
                     <span
-                      className={`mr-1.5 font-mono text-[10px] ${isCurrent ? "text-primary" : "text-on-surface-variant/60"}`}
+                      className={`mr-1.5 font-mono text-[12px] ${isCurrent ? "text-primary" : "text-on-surface-variant/60"}`}
                     >
                       {i + 1}.
                     </span>

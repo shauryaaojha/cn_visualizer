@@ -156,12 +156,12 @@ export function AddressSidebar() {
       ];
 
   return (
-    <aside className="scroll-thin z-40 flex h-full w-72 shrink-0 flex-col overflow-y-auto border-r-[1.5px] border-dashed border-outline-variant bg-surface-container-low/95 backdrop-blur-xl md:bg-surface-container-low/80">
+    <aside className="scroll-thin z-40 flex h-full w-72 shrink-0 flex-col overflow-y-auto border-r border-outline-variant bg-surface-container-low/95 backdrop-blur-xl md:bg-surface-container-low/80">
       <div className="flex flex-1 flex-col gap-md p-md">
         {/* Header */}
-        <div className="flex items-center gap-2 border-b-[1.5px] border-dashed border-outline-variant pb-md">
+        <div className="flex items-center gap-2 border-b border-outline-variant pb-md">
           <Icon name={categoryIcon} className="text-[16px] text-primary" />
-          <h2 className="font-hand text-[17px] font-bold text-primary">{categoryTitle}</h2>
+          <h2 className="font-hand text-[21px] font-bold text-primary">{categoryTitle}</h2>
         </div>
 
         <SidebarTabs />
@@ -220,13 +220,13 @@ export function AddressSidebar() {
 
             <div className="flex flex-col gap-2">
               <div className="flex items-center justify-between">
-                <label className="font-label-caps text-[9px] uppercase tracking-[0.08em] text-on-surface-variant/70">
+                <label className="font-label-caps text-[12px] uppercase tracking-[0.08em] text-on-surface-variant/70">
                   Departments ({params.vlsm.departments.length})
                 </label>
                 <button
                   type="button"
                   onClick={addDept}
-                  className="flex items-center gap-1 font-hand text-[12px] font-bold text-mint hover:underline"
+                  className="flex items-center gap-1 font-sans text-[13px] font-bold text-mint hover:underline"
                 >
                   + Add
                 </button>
@@ -236,7 +236,7 @@ export function AddressSidebar() {
                 {params.vlsm.departments.map((dept) => (
                   <div
                     key={dept.id}
-                    className="flex items-center gap-1.5 rounded border border-dashed border-outline-variant/60 bg-black/20 p-1.5"
+                    className="flex items-center gap-1.5 rounded border border-outline-variant/60 bg-black/20 p-1.5"
                   >
                     <div className="flex-1">
                       <TextInput
@@ -273,16 +273,16 @@ export function AddressSidebar() {
         )}
 
         {/* Fault Injection: Bit Flip */}
-        <div className="flex flex-col gap-1 border-t border-dashed border-outline-variant/40 pt-3">
-          <label className="flex items-center gap-1.5 font-label-caps text-[9px] uppercase tracking-[0.08em] text-coral">
-            <Icon name="warning" className="text-[13px]" /> Flip an address bit
+        <div className="flex flex-col gap-1 border-t border-outline-variant/40 pt-3">
+          <label className="flex items-center gap-1.5 font-label-caps text-[12px] uppercase tracking-[0.08em] text-coral">
+            <Icon name="warning" className="text-[14px]" /> Flip an address bit
           </label>
           <Select
             value={currentBitFlipIndex}
             onChange={setBitFlip}
             options={bitFlipOptions}
           />
-          <p className="font-body-sm text-[11px] leading-snug text-on-surface-variant/60">
+          <p className="font-body-sm text-[13px] leading-snug text-on-surface-variant/60">
             {currentBitFlipIndex !== ""
               ? isIpv4
                 ? parseInt(currentBitFlipIndex, 10) < params.ipv4.prefix

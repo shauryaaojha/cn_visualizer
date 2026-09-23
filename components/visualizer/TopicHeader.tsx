@@ -20,7 +20,7 @@ export function TopicHeader({ path, title, blurb }: TopicHeaderProps) {
   const toggleRecord = useRecordStore((s) => s.toggle);
 
   return (
-    <div className="shrink-0 border-b-[1.5px] border-dashed border-outline-variant/60 bg-surface/40 px-lg py-2 backdrop-blur-md">
+    <div className="shrink-0 border-b border-outline-variant/60 bg-surface/40 px-lg py-2 backdrop-blur-md">
       <div className="flex items-center justify-between gap-3">
         <Breadcrumb path={path} />
         <div className="flex items-center gap-2">
@@ -30,7 +30,7 @@ export function TopicHeader({ path, title, blurb }: TopicHeaderProps) {
             onClick={toggleRecord}
             title={`Record mode (P)\n\n${LESSON_KEYS.map((k) => `${k.keys} — ${k.does}`).join("\n")}`}
             aria-label="Enter record mode"
-            className="flex items-center gap-1 rounded-md border-[1.5px] border-dashed border-outline-variant px-2 py-1 font-hand text-[12.5px] font-bold text-on-surface-variant transition-colors hover:border-coral hover:text-coral"
+            className="flex items-center gap-1 rounded-md border border-outline-variant px-2 py-1 font-sans text-[13px] font-bold text-on-surface-variant transition-colors hover:border-coral hover:text-coral"
           >
             <Icon name="videocam" className="text-[15px]" />
             <span className="hidden xl:inline">Record</span>
