@@ -389,6 +389,30 @@ export default function Page() {
 }
 ```
 
+### 9a. The Unit 1 standard — required for every unit and the capstone
+
+A leaf is not done when it animates. Every unit (1–5 and the capstone) ships
+to the same bar the Layer visualizer set (`LayerCanvas.tsx`, `layerEngine.ts`,
+`layerFacts.ts` are the reference):
+
+1. **Timeline labels.** Every frame carries a short `label` ("L4↓", "wire",
+   "FCS✓", "hop 2", "converged") so the timeline shows the lesson's shape.
+2. **Predict questions.** The frames where something *decides* or *changes*
+   carry a `predict` ({question, options, answer, why}). Build them with a
+   deterministic helper so the right answer is not always option 1, and use
+   the student's own inputs in the numbers.
+3. **A clickable canvas.** Anything a student might ask "what is that?" about
+   (a node, a link, a header, a table row, a bit) calls
+   `useLessonUi().toggleSelect({ key, kind, title, color, body })`; the
+   Inspector renders it. Where it makes sense, clicking also `seek`s to the
+   frame where that thing matters.
+4. **Facts, not filler.** Inspector cards show real values (addresses, costs,
+   delays) computed from the params. Keep reusable facts in an
+   `engines/<name>Facts.ts` data file; engines import it by relative path
+   with a `.ts` extension so `npm test` still runs under plain Node.
+5. **Nothing readable under 12px** at the stage's natural size, and dashed
+   chalk lines only on the canvas.
+
 ---
 
 ## 10. Guiding principle
