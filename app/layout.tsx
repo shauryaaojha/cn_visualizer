@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { Atkinson_Hyperlegible_Next, JetBrains_Mono, Kalam } from "next/font/google";
-import { ChalkWipe } from "@/components/layout/ChalkWipe";
+import { BlockTransition } from "@/components/layout/BlockTransition";
 import "./globals.css";
 
 // Kalam is the teacher's hand; JetBrains Mono is the network's. Nothing on a
@@ -53,7 +53,7 @@ export default function RootLayout({
         className={`${kalam.variable} ${atkinson.variable} ${jetbrainsMono.variable} font-body-md text-body-md text-on-background antialiased`}
       >
         {children}
-        <ChalkWipe />
+        <BlockTransition />
       </body>
     </html>
   );

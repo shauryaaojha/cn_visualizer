@@ -12,7 +12,7 @@
 //   Only horizontal wheel / trackpad swipes (or Shift+wheel) move the strip.
 // - Pointer events instead of separate mouse/touch paths; a drag past 6px
 //   cancels the click so you never open a topic by accident. That check runs
-//   on window in the capture phase — ahead of ChalkWipe's document-level
+//   on window in the capture phase — ahead of BlockTransition's document-level
 //   listener, which would otherwise start a page transition mid-drag.
 // - The rAF loop sleeps when the strip is at rest instead of running forever,
 //   and it only runs while the strip is on screen.

@@ -75,7 +75,7 @@ export function SyllabusMenu() {
     setHover(null);
   };
 
-  // Close on navigation (the chalk wipe covers the swap). Adjusting state
+  // Close on navigation (the page transition covers the swap). Adjusting state
   // while rendering, rather than in an effect, avoids a wasted render pass.
   const [seenPath, setSeenPath] = useState(pathname);
   if (pathname !== seenPath) {
