@@ -64,7 +64,7 @@ export function Hero({ built, total }: HeroProps) {
           className="font-hand text-[clamp(56px,10vw,136px)] font-bold leading-[0.95] tracking-[-0.02em] text-on-surface"
         >
           {[...title].map((ch, i) => (
-            <span key={i} aria-hidden className="inline-block overflow-hidden pb-[0.08em] align-bottom">
+            <span key={i} aria-hidden className="-my-[0.15em] inline-block overflow-hidden py-[0.15em] align-bottom">
               <motion.span
                 className="inline-block"
                 initial={{ y: reduce ? 0 : "105%" }}
