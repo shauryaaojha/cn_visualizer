@@ -5,10 +5,10 @@
 //   1. Hero        — what this is, how much of it exists, where to start.
 //   2. Units       — the syllabus as a ruled list with honest progress.
 //   3. Strip       — every visualizer that runs today, one drag away.
-//   4. OSI ring    — one taste of how the lessons move.
+//   4. OSI stack   — one taste of how the lessons move.
 //
 // The landing page scrolls inside its own container (the body is
-// overflow:hidden for the app shell), so the scroll-linked ring is handed that
+// overflow:hidden for the app shell), so the scroll-linked stack is handed that
 // container explicitly.
 
 import Link from "next/link";
@@ -16,7 +16,7 @@ import { useRef } from "react";
 import { BoardBackground } from "@/components/layout/BoardBackground";
 import { Navbar } from "@/components/layout/Navbar";
 import { Hero } from "@/components/landing/Hero";
-import { OsiRing } from "@/components/landing/OsiRing";
+import { OsiStack } from "@/components/landing/OsiStack";
 import { VisualizerStrip } from "@/components/landing/VisualizerStrip";
 import { Icon } from "@/components/ui/Icon";
 import { SECTIONS, leavesOfSection } from "@/data/curriculum";
@@ -118,8 +118,8 @@ export function Landing() {
           <VisualizerStrip items={BUILT} />
         </section>
 
-        {/* 4 — OSI ring */}
-        <OsiRing scroller={scroller} />
+        {/* 4 — OSI stack */}
+        <OsiStack scroller={scroller} />
 
         <footer className="mx-auto flex w-full max-w-6xl flex-col gap-2 border-t border-outline-variant px-margin py-10 font-sans text-[14px] text-on-surface-variant md:flex-row md:justify-between">
           <span>CN_Visualizer · 21CSC302J Computer Networks</span>
