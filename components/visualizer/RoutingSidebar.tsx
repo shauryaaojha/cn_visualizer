@@ -3,7 +3,6 @@
 import { useMemo } from "react";
 import { Icon } from "@/components/ui/Icon";
 import { Chips, Field, NumberInput, Select } from "@/components/ui/Field";
-import { SidebarTabs } from "@/components/visualizer/SidebarTabs";
 import { MAX_ROUTERS, MIN_ROUTERS, routingLinks, routingRouters, suggestedRoutingCut } from "@/engines/routingEngine";
 import { useRoutingStore } from "@/lib/routingStore";
 import type { Fault } from "@/types/visualization";
@@ -28,7 +27,6 @@ export function RoutingSidebar() {
           <Icon name={isForwarding ? "alt_route" : "sync"} className="text-[16px] text-primary" />
           <h2 className="font-hand text-[21px] font-bold text-primary">{isForwarding ? "Forwarding" : "Routing algorithms"}</h2>
         </div>
-        <SidebarTabs />
         <Field label="Routers" hint="Changing the network rebuilds its real route tables.">
           <Chips value={params.routerCount} onChange={setRouters} columns={4} options={Array.from({ length: MAX_ROUTERS - MIN_ROUTERS + 1 }, (_, i) => ({ value: MIN_ROUTERS + i, label: String(MIN_ROUTERS + i) }))} />
         </Field>

@@ -11,7 +11,6 @@
 import { useState } from "react";
 import { Icon } from "@/components/ui/Icon";
 import { Chips, Field, NumberInput, Select, TextInput } from "@/components/ui/Field";
-import { SidebarTabs } from "@/components/visualizer/SidebarTabs";
 import {
   clampPrefix,
   isValidIp,
@@ -164,7 +163,6 @@ export function AddressSidebar() {
           <h2 className="font-hand text-[21px] font-bold text-primary">{categoryTitle}</h2>
         </div>
 
-        <SidebarTabs />
 
         {/* IPv4 Addressing Live Parameters */}
         {isIpv4 && (

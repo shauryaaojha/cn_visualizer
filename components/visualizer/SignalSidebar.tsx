@@ -6,7 +6,6 @@
 
 import { Icon } from "@/components/ui/Icon";
 import { Chips, Field, NumberInput } from "@/components/ui/Field";
-import { SidebarTabs } from "@/components/visualizer/SidebarTabs";
 import {
   FILE_PRESETS,
   LINK_PRESETS,
@@ -32,7 +31,6 @@ export function SignalSidebar() {
           <h2 className="font-hand text-[21px] font-bold text-primary">Bandwidth vs Latency</h2>
         </div>
 
-        <SidebarTabs />
 
         <Field label="File size" hint="Small files are decided by latency, large ones by bandwidth.">
           <Chips

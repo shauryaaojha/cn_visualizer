@@ -2,7 +2,6 @@
 
 import { Icon } from "@/components/ui/Icon";
 import { Chips, Field } from "@/components/ui/Field";
-import { SidebarTabs } from "@/components/visualizer/SidebarTabs";
 import { useMediaStore } from "@/lib/mediaStore";
 
 export function MediaSidebar() {
@@ -17,7 +16,6 @@ export function MediaSidebar() {
           <h2 className="font-hand text-[21px] font-bold text-primary">Transmission Media</h2>
         </div>
 
-        <SidebarTabs />
 
         {params.op === "signalBasics" && (
           <Field label="Signal Encoding" hint="Select the encoding technique applied to digital bits.">

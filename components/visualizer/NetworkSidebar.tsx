@@ -11,7 +11,6 @@
 import { useMemo } from "react";
 import { Icon } from "@/components/ui/Icon";
 import { Chips, Field, Select } from "@/components/ui/Field";
-import { SidebarTabs } from "@/components/visualizer/SidebarTabs";
 import { cuttableLinks, HOST_IDS, MAX_HOSTS, MIN_HOSTS, suggestedCut } from "@/engines/netEngine";
 import { useNetStore } from "@/lib/netStore";
 import type { Fault } from "@/types/visualization";
@@ -81,7 +80,6 @@ export function NetworkSidebar() {
           <h2 className="font-hand text-[21px] font-bold text-primary">{categoryTitle}</h2>
         </div>
 
-        <SidebarTabs />
 
         {isTopo && (
           <>
