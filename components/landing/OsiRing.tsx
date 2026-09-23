@@ -93,7 +93,7 @@ export function OsiRing({ scroller }: OsiRingProps) {
           <Heading />
         </div>
 
-        <div className="relative flex flex-1 items-center justify-center [perspective:1400px]">
+        <div className="relative flex flex-1 origin-center scale-[0.62] items-center justify-center [perspective:1400px] md:scale-100">
           <motion.div
             className="relative h-[280px] w-[210px] [transform-style:preserve-3d]"
             style={{ rotateY, rotateX: tilt, rotateZ: tilt }}

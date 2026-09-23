@@ -211,7 +211,7 @@ export function SyllabusMenu() {
                               {r.unit <= 5 ? `0${r.unit}` : "★"}
                             </span>
                             <span
-                              className={`font-hand text-[28px] font-bold leading-none tracking-[-0.01em] transition-[letter-spacing,color] duration-500 group-hover:tracking-normal md:text-[clamp(34px,4.2vw,64px)] ${
+                              className={`font-hand text-[24px] font-bold leading-none tracking-[-0.01em] transition-[letter-spacing,color] duration-500 group-hover:tracking-normal md:text-[clamp(34px,4.2vw,64px)] ${
                                 here ? "text-primary" : "text-on-surface group-hover:text-primary"
                               }`}
                             >

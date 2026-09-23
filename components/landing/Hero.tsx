@@ -109,7 +109,7 @@ export function Hero({ built, total }: HeroProps) {
               </Link>
               <a
                 href="#visualizers"
-                className="rounded-md px-4 py-3 font-sans text-[16px] font-semibold text-on-surface underline decoration-on-surface/30 underline-offset-4 transition-colors hover:decoration-primary"
+                className="rounded-md px-1 py-3 font-sans text-[16px] font-semibold text-on-surface underline sm:px-4 decoration-on-surface/30 underline-offset-4 transition-colors hover:decoration-primary"
               >
                 Browse all {built} visualizers
               </a>
