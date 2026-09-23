@@ -5,7 +5,7 @@ export default function Topics() {
   return (
     <TopicHub
       path="/topics"
-      icon="menu_book"
+      icon="school"
       eyebrow="SYLLABUS"
       title="All Units"
       blurb="The full 21CSC302J session plan, mapped to visualizers."

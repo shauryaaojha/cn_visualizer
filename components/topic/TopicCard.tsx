@@ -39,7 +39,7 @@ export function TopicCard({ title, blurb, icon, href, status = "available", stat
           </span>
         ) : (
           <Icon
-            name="arrow_outward"
+            name="east"
             className="text-[18px] text-on-surface-variant/40 transition-colors group-hover:text-primary"
           />
         )}

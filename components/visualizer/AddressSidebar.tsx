@@ -228,7 +228,7 @@ export function AddressSidebar() {
                   onClick={addDept}
                   className="flex items-center gap-1 font-hand text-[12px] font-bold text-mint hover:underline"
                 >
-                  <Icon name="add" className="text-[14px]" /> Add
+                  + Add
                 </button>
               </div>
 
