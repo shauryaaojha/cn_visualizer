@@ -25,13 +25,14 @@ export interface Selection {
 interface LessonUi {
   predict: boolean;
   setupOpen: boolean;
-  inspectorOpen: boolean;
+  /** null = automatic: shown beside the stage on wide screens, hidden on phones. */
+  inspectorOpen: boolean | null;
   selection: Selection | null;
   /** Per-run tally of Predict answers. */
   score: { right: number; asked: number };
   togglePredict: () => void;
   setSetupOpen: (open: boolean) => void;
-  setInspectorOpen: (open: boolean) => void;
+  setInspectorOpen: (open: boolean | null) => void;
   select: (s: Selection | null) => void;
   /** Select, or clear if the same thing is clicked again. */
   toggleSelect: (s: Selection) => void;
@@ -42,7 +43,7 @@ interface LessonUi {
 export const useLessonUi = create<LessonUi>((set, get) => ({
   predict: false,
   setupOpen: false,
-  inspectorOpen: true,
+  inspectorOpen: null,
   selection: null,
   score: { right: 0, asked: 0 },
   togglePredict: () => set((s) => ({ predict: !s.predict, score: { right: 0, asked: 0 } })),

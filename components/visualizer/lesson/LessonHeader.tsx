@@ -125,8 +125,8 @@ export function LessonHeader({ title, hasSetup }: LessonHeaderProps) {
 
         <button
           type="button"
-          onClick={() => setInspectorOpen(!inspectorOpen)}
-          aria-pressed={inspectorOpen}
+          onClick={() => setInspectorOpen(!(inspectorOpen ?? window.innerWidth >= 1024))}
+          aria-pressed={inspectorOpen === true}
           className={`${quiet} ${inspectorOpen ? "border-primary/60 text-on-surface" : ""}`}
           title="Inspector"
         >

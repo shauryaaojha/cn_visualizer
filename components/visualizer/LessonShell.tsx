@@ -58,7 +58,8 @@ export function LessonShell({ path, title, blurb, canvas, sidebar, use, hint }: 
   // Inspector starts closed so it does not sit on top of the stage.
   useEffect(() => {
     select(null);
-    if (window.innerWidth < 1024) setInspectorOpen(false);
+    // Back to automatic — decided by CSS, so a phone never sees it flash open.
+    setInspectorOpen(null);
   }, [path, select, setInspectorOpen]);
 
   useLessonKeys(s);
@@ -117,15 +118,15 @@ export function LessonShell({ path, title, blurb, canvas, sidebar, use, hint }: 
           </main>
 
           <AnimatePresence initial={false}>
-            {inspectorOpen && (
+            {inspectorOpen !== false && (
               <motion.aside
                 key="inspector"
                 aria-label="Inspector"
-                initial={{ x: 40, opacity: 0 }}
-                animate={{ x: 0, opacity: 1 }}
-                exit={{ x: 40, opacity: 0 }}
+                initial={{ y: 30, opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                exit={{ y: 30, opacity: 0 }}
                 transition={{ duration: 0.22, ease: [0.23, 1, 0.32, 1] }}
-                className="absolute inset-y-0 right-0 z-30 w-[min(360px,92vw)] border-l border-outline-variant bg-surface-container-low/95 backdrop-blur-xl lg:static lg:z-auto lg:w-[340px] lg:shrink-0 lg:bg-surface-container-low/60"
+                className={`absolute inset-x-0 bottom-0 z-30 h-[58%] rounded-t-2xl border-t border-outline-variant bg-surface-container-low/95 shadow-[0_-18px_40px_rgba(0,0,0,0.35)] backdrop-blur-xl sm:inset-x-auto sm:inset-y-0 sm:right-0 sm:h-auto sm:w-[360px] sm:rounded-none sm:border-l sm:border-t-0 lg:static lg:z-auto lg:w-[340px] lg:shrink-0 lg:bg-surface-container-low/60 lg:shadow-none ${inspectorOpen === null ? "hidden lg:block" : ""}`}
               >
                 <Inspector use={use} blurb={blurb} hint={hint} />
               </motion.aside>

@@ -18,6 +18,13 @@ const RECORD_MAX_SCALE = 2;
  * lesson — it should be the biggest thing on the page.
  */
 const STUDY_MAX_SCALE = 1.6;
+/**
+ * On a phone, fitting a 900px diagram into 375px would shrink the text to
+ * a third of its size. Below this width the stage stops shrinking at
+ * PHONE_MIN_SCALE and lets you pan instead.
+ */
+const PHONE_WIDTH = 640;
+const PHONE_MIN_SCALE = 0.62;
 
 interface FitStageProps {
   children: ReactNode;
@@ -39,6 +46,7 @@ export function FitStage({ children, padding = 20, maxScale, className }: FitSta
   const outerRef = useRef<HTMLDivElement | null>(null);
   const innerRef = useRef<HTMLDivElement | null>(null);
   const [scale, setScale] = useState(1);
+  const [natural, setNatural] = useState({ w: 0, h: 0 });
   // Canvases never pass this — they just inherit the right behaviour.
   const cap = maxScale ?? (recording ? RECORD_MAX_SCALE : STUDY_MAX_SCALE);
 
@@ -51,27 +59,30 @@ export function FitStage({ children, padding = 20, maxScale, className }: FitSta
       const cw = inner.offsetWidth;
       const ch = inner.offsetHeight;
       if (!cw || !ch) return;
-      const s = Math.min(cap, (outer.clientWidth - padding) / cw, (outer.clientHeight - padding) / ch);
+      let s = Math.min(cap, (outer.clientWidth - padding) / cw, (outer.clientHeight - padding) / ch);
+      if (!recording && outer.clientWidth < PHONE_WIDTH) s = Math.max(s, PHONE_MIN_SCALE);
       setScale(Number.isFinite(s) && s > 0 ? s : 1);
+      setNatural((n) => (n.w === cw && n.h === ch ? n : { w: cw, h: ch }));
     };
     measure();
     const ro = new ResizeObserver(measure);
     if (outerRef.current) ro.observe(outerRef.current);
     if (innerRef.current) ro.observe(innerRef.current);
     return () => ro.disconnect();
-  }, [padding, cap]);
+  }, [padding, cap, recording]);
 
   return (
-    <div
-      ref={outerRef}
-      className={`flex h-full w-full items-center justify-center overflow-hidden ${className ?? ""}`}
-    >
-      <div
-        ref={innerRef}
-        className="shrink-0 transition-transform duration-300 ease-out"
-        style={{ transform: `scale(${scale})` }}
-      >
-        {children}
+    <div ref={outerRef} className={`scroll-thin flex h-full w-full overflow-auto overscroll-contain ${className ?? ""}`}>
+      {/* The sizer takes the scaled size, so a stage larger than the screen
+          scrolls (phones) and a smaller one is centred by margin:auto. */}
+      <div className="m-auto shrink-0" style={{ width: natural.w * scale || undefined, height: natural.h * scale || undefined }}>
+        <div
+          ref={innerRef}
+          className="w-max origin-top-left transition-transform duration-300 ease-out"
+          style={{ transform: `scale(${scale})` }}
+        >
+          {children}
+        </div>
       </div>
     </div>
   );

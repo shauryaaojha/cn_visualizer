@@ -14,7 +14,6 @@ import { useLessonUi } from "@/lib/lessonUiStore";
 import { PALETTE } from "@/lib/palette";
 import type { LadderMark, LadderMsg, LadderStep, WindowStrip } from "@/types/visualization";
 
-const W = 900;
 const HEAD = 64;
 const KIND_COLOR: Record<LadderMsg["kind"], string> = {
   data: PALETTE.data,
@@ -39,7 +38,10 @@ export function LadderCanvas() {
   if (!step) return null;
 
   const n = step.lanes.length;
-  const gutter = n > 3 ? 90 : 140;
+  // Width follows the number of participants: a two-lane handshake is a
+  // narrow column (good on a phone), five DNS servers get room to breathe.
+  const W = Math.max(560, n * 190 + 60);
+  const gutter = n > 3 ? 90 : 110;
   const x = (id: string) => {
     const i = step.lanes.findIndex((l) => l.id === id);
     return gutter + (i * (W - gutter * 2)) / Math.max(1, n - 1);
