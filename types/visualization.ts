@@ -340,66 +340,75 @@ export type MediaKind =
   | "antennaWave"
   | "comparisonRadar";
 
+export type SignalType = "nrz" | "manchester" | "am" | "fm" | "qam";
+
 export interface MediaWaveform {
-  signalType: "nrz" | "manchester" | "am" | "fm" | "qam";
+  signalType: SignalType;
   bits: string;
-  waveSvgPath: string;
-  clockSvgPath: string;
+  /** How many bits of the waveform have been drawn so far. */
+  drawn: number;
 }
 
 export interface MediaTwistedPair {
-  twistRate: number; // twists per meter
-  noiseLevel: number; // 0-1
-  wireAPath: string;
-  wireBPath: string;
-  diffOutput: string;
-  cancelled: boolean;
+  twistRate: number; // twists per metre
+  noiseLevel: number; // 0–1
+}
+
+export interface CoaxLayer {
+  id: string;
+  name: string;
+  material: string;
+  purpose: string;
+  /** Radius in a 0–50 viewBox. */
+  radius: number;
+  color: string;
 }
 
 export interface MediaCoaxial {
-  layers: {
-    name: string;
-    material: string;
-    purpose: string;
-    radius: number;
-    color: string;
-  }[];
-  activeLayerIndex: number;
+  layers: CoaxLayer[];
 }
 
 export interface MediaRayOptics {
   coreIndex: number;
   claddingIndex: number;
   criticalAngleDeg: number;
+  /** Angle of incidence at the core–cladding boundary, from the normal. */
   launchAngleDeg: number;
   isTIR: boolean;
-  rays: { x1: number; y1: number; x2: number; y2: number; color: string }[];
   mode: "smf" | "mmf";
 }
 
 export interface MediaAntennaWave {
-  type: "ground" | "sky" | "space" | "microwave" | "infrared";
+  type: "radio" | "microwave" | "infrared";
   frequencyLabel: string;
   rangeLabel: string;
   rainAttenuationDb?: number;
-  reflected?: boolean;
-  absorbed?: boolean;
 }
 
+export interface MediumScore {
+  name: string;
+  bandwidth: number; // 1–10
+  maxDistance: number;
+  emiImmunity: number;
+  lowCost: number; // higher = cheaper
+  security: number;
+  color: string;
+}
+
+export type MediumAxis = "bandwidth" | "maxDistance" | "emiImmunity" | "lowCost" | "security";
+
 export interface MediaComparisonRadar {
-  media: {
-    name: string;
-    bandwidth: number; // 1-10
-    maxDistance: number; // 1-10
-    emiImmunity: number; // 1-10
-    lowCost: number; // 1-10 (higher is cheaper/better)
-    security: number; // 1-10
-    color: string;
-  }[];
+  media: MediumScore[];
+  /** The attribute being compared this frame, if any. */
+  axis?: MediumAxis;
 }
 
 export interface MediaStep extends BaseStep {
   kind: MediaKind;
+  /** The part being narrated this frame — the canvas highlights it. */
+  focus?: string;
+  /** How far the reveal has got (0 = just the setup). */
+  phase: number;
   waveform?: MediaWaveform;
   twistedPair?: MediaTwistedPair;
   coaxial?: MediaCoaxial;
@@ -574,3 +583,219 @@ export type AddrProgram = Program<AddrStep>;
  */
 export type AddrOperationId = "ipv4Addressing" | "vlsm";
 
+
+// ===========================================================================
+// ENGINE 7 — ladderEngine  ·  LadderCanvas
+//
+// A message-sequence ("ladder") diagram: one vertical lane per participant,
+// time running down, each message a slanted arrow from sender to receiver.
+// Powers Unit 4 flow control (stop-and-wait, ARQ, sliding window), every
+// Unit 5 protocol conversation (handshake, TCP reliability and flow control,
+// UDP, HTTP, FTP, email, Telnet, DNS) and the capstone Packet Journey.
+// ===========================================================================
+
+export type LadderLaneKind = "host" | "server" | "router" | "dns" | "mail" | "app";
+
+export interface LadderLane {
+  id: string;
+  label: string;
+  /** "10.0.0.5 : 51000", "port 21". */
+  sub?: string;
+  kind: LadderLaneKind;
+}
+
+export interface LadderMsg {
+  id: string;
+  from: string;
+  to: string;
+  /** Time row it leaves at and arrives at; t1 > t0 draws the flight slope. */
+  t0: number;
+  t1: number;
+  label: string;
+  kind: "data" | "ack" | "control" | "query" | "reply";
+  /** `lost` stops halfway with an ✕. */
+  state: "done" | "lost";
+  /** Sent in this frame — the canvas animates it in. */
+  fresh?: boolean;
+  /** Header fields this message actually carries, for the Inspector. */
+  fields?: [string, string][];
+  /** Which connection it belongs to, when a lesson has two (FTP). */
+  channel?: string;
+}
+
+export interface LadderMark {
+  lane: string;
+  t: number;
+  /** A timer runs from t to t1. */
+  t1?: number;
+  kind: "timer" | "timeout" | "deliver" | "note" | "drop" | "buffer";
+  label: string;
+}
+
+/** The sender's window drawn as a strip of numbered slots. */
+export interface WindowStrip {
+  label: string;
+  total: number;
+  /** First unacknowledged, next to send, window size. */
+  base: number;
+  next: number;
+  size: number;
+  acked: number;
+}
+
+export interface LadderStep extends BaseStep {
+  lanes: LadderLane[];
+  msgs: LadderMsg[];
+  marks: LadderMark[];
+  /** Time rows in the whole run — fixes the vertical scale. */
+  tMax: number;
+  window?: WindowStrip;
+  /** Small readout beside the ladder — seq/ack, rwnd, cache. */
+  side?: { title: string; rows: [string, string][] };
+}
+
+export type LadderProgram = Program<LadderStep>;
+
+// ===========================================================================
+// ENGINE 8 — bitEngine  ·  BitCanvas
+//
+// Rows of bits you can watch arithmetic happen on: parity counting, one's-
+// complement checksum addition, CRC long division and Hamming syndrome.
+// ===========================================================================
+
+export type BitRole = "data" | "check" | "gen" | "work" | "rem" | "pad" | "sum";
+
+export interface BitCell {
+  v: 0 | 1;
+  role: BitRole;
+  state: "idle" | "active" | "flip" | "ok" | "bad" | "dim";
+  /** Tiny tag above the cell — "p1", "d3", "2⁴". */
+  tag?: string;
+}
+
+export interface BitRow {
+  id: string;
+  label: string;
+  cells: BitCell[];
+  /** Cells to indent by, so long-division rows line up under the dividend. */
+  offset?: number;
+  /** Right-hand annotation — "= 0x3A", "3 ones → odd". */
+  note?: string;
+  /** Group rows under one heading. */
+  group?: "sender" | "wire" | "receiver" | "work";
+}
+
+export interface BitStep extends BaseStep {
+  rows: BitRow[];
+  /** Width of the widest row in cells — keeps the grid steady between frames. */
+  cols: number;
+  readout?: [string, string][];
+}
+
+export type BitProgram = Program<BitStep>;
+
+// ===========================================================================
+// ENGINE 9 — frameEngine  ·  FrameCanvas
+//
+// Header anatomy: a frame or segment drawn field by field, to scale, filled
+// in with the student's own values. Ethernet, HDLC, PPP, UDP, TCP and ports.
+// ===========================================================================
+
+export interface FrameField {
+  id: string;
+  name: string;
+  /** Size in bits (bytes × 8 for byte-oriented frames). */
+  bits: number;
+  value: string;
+  tone: HeaderTone;
+  state: "empty" | "new" | "set" | "focus" | "bad";
+  /** What the field is for — the Inspector's first line. */
+  about?: string;
+}
+
+export interface DemuxApp {
+  name: string;
+  port: number;
+  proto: "TCP" | "UDP";
+  active?: boolean;
+}
+
+export interface FrameStep extends BaseStep {
+  fields: FrameField[];
+  /** Draw as RFC-style rows of this many bits (TCP/UDP: 32); omit for one strip. */
+  rowBits?: number;
+  /** Raw bit stream under the frame, for bit-stuffing lessons. */
+  stream?: { label: string; bits: string; marks?: number[] };
+  /** Port numbers: segments being handed to processes. */
+  demux?: { apps: DemuxApp[]; incoming?: { port: number; proto: "TCP" | "UDP"; label: string } };
+}
+
+export type FrameProgram = Program<FrameStep>;
+
+// ===========================================================================
+// ENGINE 10 — macEngine  ·  MacCanvas
+//
+// A shared channel over time: one row per station, time left to right, each
+// transmission a bar. Overlapping bars are collisions. Powers the MAC
+// problem, ALOHA, CSMA/CD, CSMA/CA and Token Ring.
+// ===========================================================================
+
+export interface MacStation {
+  id: string;
+  label: string;
+  state: "idle" | "sensing" | "sending" | "backoff" | "waiting" | "done" | "holding" | "collided";
+}
+
+export interface MacTx {
+  id: string;
+  station: string;
+  start: number;
+  end: number;
+  kind: "data" | "jam" | "rts" | "cts" | "ack" | "token" | "backoff" | "difs" | "sense";
+  state: "ok" | "collided" | "pending";
+  label?: string;
+}
+
+export interface MacStep extends BaseStep {
+  stations: MacStation[];
+  txs: MacTx[];
+  /** Current time and the full time axis. */
+  now: number;
+  tMax: number;
+  /** Slot length for slotted schemes; draws slot boundaries. */
+  slot?: number;
+  channel: "idle" | "busy" | "collision";
+  /** Token Ring: who holds the token now. */
+  token?: string;
+  ring?: boolean;
+  readout?: [string, string][];
+}
+
+export type MacProgram = Program<MacStep>;
+
+// ===========================================================================
+// ENGINE 11 — journeyEngine  ·  JourneyCanvas
+//
+// The capstone: one request crossing a real little network, hop by hop,
+// with the whole header stack shown at every hop so you can see which
+// headers change (Ethernet, TTL) and which never do (IP addresses, ports).
+// ===========================================================================
+
+export interface PduLayer {
+  layer: "Application" | "Transport" | "Network" | "Data Link" | "Physical";
+  name: string;
+  fields: [string, string][];
+  /** Field names that changed at this hop. */
+  changed?: string[];
+}
+
+export interface JourneyStep extends BaseStep {
+  panels: NetPanel[];
+  pdu: PduLayer[];
+  /** Which phase of the journey — DNS, TCP, HTTP… */
+  phase: string;
+  /** Where the packet is right now. */
+  at: string;
+}
+
+export type JourneyProgram = Program<JourneyStep>;

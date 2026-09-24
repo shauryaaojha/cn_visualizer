@@ -7,6 +7,7 @@
 // ---------------------------------------------------------------------------
 
 import { CHALK_SERIES } from "../lib/palette.ts";
+import { ask } from "./lessonKit.ts";
 import type {
   AddrBlock,
   AddrFact,
@@ -1020,11 +1021,165 @@ export function runVlsm(params: VlsmParams): AddrProgram {
 
 // --- Main Engine Dispatcher -------------------------------------------------
 
+// --- timeline labels and Predict questions (ARCHITECTURE.md §9a) ------------
+
+const factOf = (st: AddrStep, label: string) => st.facts?.find((f) => f.label === label)?.value;
+
+/** Same bits with one flipped, for a plausible wrong binary answer. */
+const flipOne = (bits: string, i: number) => bits.slice(0, i) + (bits[i] === "1" ? "0" : "1") + bits.slice(i + 1);
+
+function annotateIpv4(prog: AddrProgram): AddrProgram {
+  let octet = 0;
+  const usable = prog.stats.find((x) => x.label === "Usable hosts")?.value ?? "";
+  prog.steps.forEach((st, i) => {
+    const c = st.codeLines?.[0];
+    if (st.message?.tone === "error" || st.message?.tone === "warn") {
+      if (c === 5 && i === prog.steps.length - 1) st.label = "bit flip";
+    }
+    if (st.label) return;
+    switch (c) {
+      case 1:
+        st.label = "dotted";
+        break;
+      case 2: {
+        octet += 1;
+        st.label = `octet ${octet}`;
+        const dec = factOf(st, `Octet ${octet} Decimal`);
+        const bin = factOf(st, `Octet ${octet} Binary`);
+        if (octet === 3 && dec && bin)
+          st.predict = ask(
+            `Octet ${octet} is ${dec}. What is it in binary?`,
+            bin,
+            [flipOne(bin, 1), bin.split("").reverse().join(""), (Number(dec) + 1).toString(2).padStart(8, "0").slice(-8)],
+            `Write ${dec} as a sum of 128, 64, 32, 16, 8, 4, 2, 1 — each place value used is a 1.`,
+            Number(dec),
+          );
+        break;
+      }
+      case 3:
+        st.label = "32 bits";
+        break;
+      case 4:
+        st.label = "boundary";
+        break;
+      case 5:
+        st.label = "net | host";
+        break;
+      case 6: {
+        st.label = "network";
+        const net = factOf(st, "Network Address");
+        const mask = factOf(st, "Subnet Mask");
+        const ip = factOf(prog.steps[0], "Dotted Decimal");
+        if (net)
+          st.predict = ask(
+            `Set every host bit to 0. What is the network address${mask ? ` (mask ${mask})` : ""}?`,
+            net,
+            [
+              ...(ip && ip !== net ? [ip] : []),
+              intToIp(ipToInt(net) + 1),
+              intToIp((ipToInt(net) & maskFromPrefix(16)) >>> 0),
+              intToIp((ipToInt(net) | 255) >>> 0),
+            ],
+            "Network address = IP AND mask: keep the network bits, zero every host bit.",
+            i,
+          );
+        break;
+      }
+      case 7: {
+        st.label = "broadcast";
+        const b = factOf(st, "Broadcast Address");
+        const net = factOf(st, "Network Address");
+        if (b && net)
+          st.predict = ask(
+            "Now set every host bit to 1. What is the broadcast address?",
+            b,
+            [intToIp(ipToInt(b) - 1), net, intToIp((ipToInt(net) | 0xffff) >>> 0), "255.255.255.255"],
+            "Broadcast = network address with all host bits set to 1 — the last address in the block.",
+            i + 1,
+          );
+        break;
+      }
+      case 8: {
+        st.label = "hosts";
+        const n = Number(usable.replace(/,/g, ""));
+        if (Number.isFinite(n) && n > 0)
+          st.predict = ask(
+            "How many addresses in this block can be given to hosts?",
+            n.toLocaleString("en-US"),
+            [n + 2, n + 1, n * 2].map((v) => v.toLocaleString("en-US")),
+            "2^(host bits) addresses, minus 2: the network address and the broadcast address can't go on a host.",
+            n,
+          );
+        break;
+      }
+    }
+  });
+  return prog;
+}
+
+function annotateVlsm(prog: AddrProgram): AddrProgram {
+  const steps = prog.steps;
+  steps.forEach((st, i) => {
+    const c = st.codeLines?.join();
+    const dept = factOf(st, "Department");
+    if (i === 0) st.label = "base";
+    else if (c === "2,3,4,6,7" && dept) {
+      st.label = dept.length > 9 ? dept.slice(0, 8) + "…" : dept;
+      const need = Number(st.description.match(/needs (\d+) hosts/)?.[1]);
+      const prefix = Number(factOf(st, "Subnet")?.split("/")[1]);
+      if (Number.isFinite(need) && Number.isFinite(prefix))
+        st.predict = ask(
+          `${dept} needs ${need} hosts. What prefix does its subnet get?`,
+          `/${prefix}`,
+          [`/${prefix + 1}`, `/${prefix - 1}`, `/${prefix + 2}`].filter((x) => Number(x.slice(1)) <= 32),
+          `${need} hosts + network + broadcast = ${need + 2} addresses → round up to ${2 ** (32 - prefix)} = 2^${32 - prefix} → /${prefix}.`,
+          need,
+        );
+    } else if (st.message?.tone === "error") {
+      st.label = "✕ full";
+      st.predict = ask(
+        "Will the next department still fit in what is left of the base block?",
+        "No — there isn't a big enough block left",
+        ["Yes, with room to spare", "Yes, exactly", "Yes, if it borrows from the free pool"],
+        "Each carve needs one aligned power-of-two block; the remaining space is smaller than the block this department needs.",
+        1,
+      );
+    } else if (c === "9") {
+      st.label = "vs FLSM";
+      const req = factOf(st, "FLSM Requirement") ?? "";
+      const fits = req.includes("Fits");
+      st.predict = ask(
+        "If every subnet had to be the same size as the biggest one (FLSM), would they all fit in the base block?",
+        fits ? "Yes, but it wastes more addresses" : "No — FLSM runs out of space",
+        ["Yes, but it wastes more addresses", "No — FLSM runs out of space", "Yes, and it uses fewer addresses"],
+        "FLSM sizes every subnet for the largest department, so small departments waste most of their block.",
+        2,
+      );
+    } else if (i === 1) {
+      st.label = "sort";
+      const first = steps.find((x) => x.codeLines?.join() === "2,3,4,6,7");
+      const d = first && factOf(first, "Department");
+      const others = steps.map((x) => factOf(x, "Department")).filter((x): x is string => !!x && x !== d);
+      if (d)
+        st.predict = ask(
+          "VLSM carves one department at a time. Which one goes first?",
+          d,
+          others,
+          "Largest first: big blocks need big aligned boundaries, and carving them first means the small ones can fill the gaps.",
+          others.length,
+        );
+    } else if (c === "8") st.label = "free pool";
+    else if (c === "1") st.label = "bit flip";
+    else st.label = `step ${i + 1}`;
+  });
+  return prog;
+}
+
 export function runAddressOperation(params: AddressRunParams): AddrProgram {
   switch (params.op) {
     case "ipv4Addressing":
-      return runIpv4Addressing(params);
+      return annotateIpv4(runIpv4Addressing(params));
     case "vlsm":
-      return runVlsm(params);
+      return annotateVlsm(runVlsm(params));
   }
 }

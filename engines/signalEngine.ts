@@ -14,6 +14,7 @@
 // ---------------------------------------------------------------------------
 
 import type { DelaySeg, SignalProgram, SignalStep, SignalTrack } from "@/types/visualization";
+import { ask, tag } from "./lessonKit.ts";
 
 /** Fixed router cost applied to both paths, so all four delay types appear. */
 const QUEUE_MS = 1.2;
@@ -516,17 +517,100 @@ export type SignalOp =
   | "propagationDelay"
   | "queuingProcessing";
 
+// --- timeline labels and Predict questions (ARCHITECTURE.md §9a) ------------
+
+/** Wrong-but-plausible times: off by the factors students actually confuse. */
+const timeOptions = (ms: number) => [ms * 10, ms / 10, ms * 2, ms / 2].map(fmtMs);
+
+function annotateRace(prog: SignalProgram, p: SignalRunParams): SignalProgram {
+  const [A, B] = derive(p);
+  const fast = A.finishMs <= B.finishMs ? A : B;
+  const slow = fast === A ? B : A;
+  const steps = prog.steps;
+  steps.forEach((st, i) => {
+    const t = st.clockMs;
+    if (i === 0) st.label = "ready";
+    else if (i === steps.length - 1) st.label = "verdict";
+    else if (t <= START_MS) st.label = "queue";
+    else if (st.message?.tone === "ok") st.label = `${fast.label} ✓`;
+    else if (!st.tracks.every((tr) => tr.sentBits >= tr.totalBits - 1e-6)) st.label = "push bits";
+    else st.label = "in flight";
+  });
+  const firstTx = steps.findIndex((st) => st.label === "push bits");
+  if (firstTx > 0)
+    steps[firstTx].predict = ask(
+      `${fmtSize(clamp(p.fileKB, MIN_KB, MAX_KB))} onto a ${A.bandwidthMbps} Mbps link. How long does ${A.label} take just to push the bits out?`,
+      fmtMs(A.txMs),
+      timeOptions(A.txMs),
+      `Transmission delay = L / R = ${A.totalBits.toLocaleString()} bits ÷ ${A.bandwidthMbps} Mbps = ${fmtMs(A.txMs)}. Distance plays no part in it.`,
+      Math.round(A.txMs),
+    );
+  const done = steps.findIndex((st) => st.label === `${fast.label} ✓`);
+  if (done > 0)
+    steps[done].predict = ask(
+      `${A.label}: ${A.bandwidthMbps} Mbps, ${A.propagationMs} ms away. ${B.label}: ${B.bandwidthMbps} Mbps, ${B.propagationMs} ms away. Which delivers the whole file first?`,
+      fast.label,
+      [slow.label, "They tie"],
+      `${fast.label} finishes at ${fmtMs(fast.finishMs)}, ${slow.label} at ${fmtMs(slow.finishMs)}. Total = queuing + processing + L/R + propagation — whichever term is biggest decides.`,
+      fast === A ? 1 : 0,
+    );
+  return prog;
+}
+
+function annotate(op: SignalOp, prog: SignalProgram, p: SignalRunParams): SignalProgram {
+  const s = prog.steps;
+  switch (op) {
+    case "transmissionDelay": {
+      const bits = p.fileKB * 1024 * 8;
+      const txB = (bits / (p.b.bandwidthMbps * 1e6)) * 1000;
+      return { ...prog, steps: tag(s, ["L / R", "halfway", "all out"], {
+        2: ask(
+          `${fmtSize(p.fileKB)} is ${bits.toLocaleString()} bits. At ${p.b.bandwidthMbps} Mbps, what is ${p.b.label}'s transmission delay?`,
+          fmtMs(txB),
+          timeOptions(txB),
+          `L / R = ${bits.toLocaleString()} ÷ ${(p.b.bandwidthMbps * 1e6).toLocaleString()} bits/s = ${fmtMs(txB)}.`,
+          2,
+        ),
+      }) };
+    }
+    case "propagationDelay": {
+      const km = p.b.propagationMs * 200;
+      return { ...prog, steps: tag(s, ["d / s", "in flight", "arrives"], {
+        2: ask(
+          `${p.b.label} is ${km.toFixed(0)} km long. Signals move at about 200 000 km/s. How long does the first bit take to cross it?`,
+          fmtMs(p.b.propagationMs),
+          timeOptions(p.b.propagationMs),
+          `d / s = ${km.toFixed(0)} km ÷ 200 000 km/s = ${fmtMs(p.b.propagationMs)}. Bandwidth has nothing to do with it.`,
+          1,
+        ),
+      }) };
+    }
+    case "queuingProcessing":
+      return { ...prog, steps: tag(s, ["process", "queue", "sent"], {
+        2: ask(
+          "Traffic intensity I = Lλ/R is 0.65. What happens to packets arriving at this router?",
+          "They wait a little, but none are dropped",
+          ["They are all dropped", "They skip the queue", "The link speeds up to match"],
+          "Below I = 1 the link can, on average, keep up: the queue grows and shrinks but does not overflow. At I ≥ 1 it grows without bound and the tail is dropped.",
+          0,
+        ),
+      }) };
+    default:
+      return annotateRace(prog, p);
+  }
+}
+
 export function runSignalOperation(op: SignalOp, p: SignalRunParams): SignalProgram {
   switch (op) {
     case "transmissionDelay":
-      return transmissionDelay(p);
+      return annotate(op, transmissionDelay(p), p);
     case "propagationDelay":
-      return propagationDelay(p);
+      return annotate(op, propagationDelay(p), p);
     case "queuingProcessing":
-      return queuingProcessing(p);
+      return annotate(op, queuingProcessing(p), p);
     case "bandwidthVsLatency":
     default:
-      return bandwidthVsLatency(p);
+      return annotate("bandwidthVsLatency", bandwidthVsLatency(p), p);
   }
 }
 

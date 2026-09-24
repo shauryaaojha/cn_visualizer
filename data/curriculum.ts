@@ -462,15 +462,15 @@ const dataLink: SectionMeta = {
   short: "Data Link",
   blurb: "Sharing one wire without shouting over each other, and noticing when a bit flips.",
   icon: "swap_calls",
-  status: "soon",
+  status: "available",
   categories: [
     {
       slug: "medium-access",
       title: "Medium Access Control",
       blurb: "Who gets to transmit when everyone shares one channel.",
       icon: "groups",
-      status: "soon",
-      leaves: soon([
+      status: "available",
+      leaves: ([
         { slug: "mac", title: "The MAC Problem", blurb: "What happens when 100 stations talk at once.", icon: "record_voice_over" },
         { slug: "aloha", title: "ALOHA", blurb: "Transmit whenever. Collide often.", icon: "waves" },
         { slug: "csma-cd", title: "CSMA/CD", blurb: "Listen, send, detect the collision, back off.", icon: "hearing" },
@@ -484,8 +484,8 @@ const dataLink: SectionMeta = {
       title: "Flow Control",
       blurb: "Keeping a fast sender from drowning a slow receiver.",
       icon: "water_drop",
-      status: "soon",
-      leaves: soon([
+      status: "available",
+      leaves: ([
         { slug: "stop-and-wait", title: "Stop-and-Wait", blurb: "Reliable, simple, and painfully slow.", icon: "pause_circle" },
         { slug: "arq", title: "ARQ", blurb: "Timeout, retransmit, acknowledge.", icon: "replay" },
         { slug: "sliding-window", title: "Sliding Window", blurb: "Many frames in flight before any ACK returns.", icon: "view_carousel" },
@@ -496,8 +496,8 @@ const dataLink: SectionMeta = {
       title: "Error Detection & Correction",
       blurb: "Bit-level arithmetic you can watch execute.",
       icon: "rule",
-      status: "soon",
-      leaves: soon([
+      status: "available",
+      leaves: ([
         { slug: "parity", title: "Parity Check", blurb: "One extra bit, one detectable error.", icon: "looks_one" },
         { slug: "checksum", title: "Checksum", blurb: "Add the words, complement the sum, verify.", icon: "functions" },
         { slug: "crc", title: "CRC", blurb: "One long binary division, step by step.", icon: "calculate" },
@@ -509,8 +509,8 @@ const dataLink: SectionMeta = {
       title: "HDLC & PPP",
       blurb: "Framing on a point-to-point serial link.",
       icon: "linear_scale",
-      status: "soon",
-      leaves: soon([
+      status: "available",
+      leaves: ([
         { slug: "hdlc", title: "HDLC", blurb: "Flag, address, control, information, FCS, flag.", icon: "flag" },
         { slug: "ppp", title: "PPP", blurb: "How two routers negotiate a direct link.", icon: "compare_arrows" },
       ]),
@@ -527,15 +527,15 @@ const transportApplication: SectionMeta = {
   short: "Transport & App",
   blurb: "Ports, TCP's promises, UDP's lack of them, and the protocols you use every day.",
   icon: "swap_vert",
-  status: "soon",
+  status: "available",
   categories: [
     {
       slug: "transport",
       title: "Transport Layer",
       blurb: "TCP and UDP on the same lossy network.",
       icon: "sync_alt",
-      status: "soon",
-      leaves: soon([
+      status: "available",
+      leaves: ([
         { slug: "port-numbers", title: "Port Numbers", blurb: "How one machine runs thousands of conversations.", icon: "door_front" },
         { slug: "udp", title: "UDP", blurb: "Four fields, no promises.", icon: "bolt" },
         { slug: "tcp", title: "TCP Segment", blurb: "Every field, and what it is for.", icon: "receipt_long" },
@@ -549,8 +549,8 @@ const transportApplication: SectionMeta = {
       title: "Application Layer",
       blurb: "The protocols you actually type into a browser.",
       icon: "apps",
-      status: "soon",
-      leaves: soon([
+      status: "available",
+      leaves: ([
         { slug: "http", title: "WWW & HTTP", blurb: "Request, process, response.", icon: "language" },
         { slug: "ftp", title: "FTP", blurb: "Two connections: one to talk, one to carry.", icon: "folder_shared" },
         { slug: "email", title: "Email", blurb: "Your mail does not go straight to your friend.", icon: "mail" },
@@ -570,15 +570,15 @@ const capstone: SectionMeta = {
   short: "Capstone",
   blurb: "Every unit in one network — type a URL and watch all five layers cooperate.",
   icon: "auto_awesome",
-  status: "soon",
+  status: "available",
   categories: [
     {
       slug: "end-to-end",
       title: "End to End",
       blurb: "The whole course as a single story.",
       icon: "timeline",
-      status: "soon",
-      leaves: soon([
+      status: "available",
+      leaves: ([
         {
           slug: "packet-journey",
           title: "Packet Journey",

@@ -11,5 +11,5 @@ interface Props { path: string; title: string; blurb: string; operation: Routing
 
 export function RoutingVisualizerScreen({ path, title, blurb, operation }: Props) {
   useEffect(() => { useRoutingStore.getState().run({ op: operation }); }, [operation]);
-  return <LessonShell path={path} title={title} blurb={blurb} sidebar={<RoutingSidebar />} canvas={<RoutingCanvas />} use={useRoutingStore} />;
+  return <LessonShell path={path} title={title} blurb={blurb} sidebar={<RoutingSidebar />} canvas={<RoutingCanvas />} use={useRoutingStore} hint="Click a router, a link or any table row to inspect it. A row jumps to the round where it last changed." />;
 }

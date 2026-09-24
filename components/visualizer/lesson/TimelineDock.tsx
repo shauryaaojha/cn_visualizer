@@ -127,7 +127,7 @@ export function TimelineDock({ use }: { use: () => PlayerSnapshot }) {
                 >
                   {st.label && total <= 32 && (
                     <span
-                      className={`hidden truncate font-mono text-[11px] leading-none transition-colors md:block ${
+                      className={`hidden w-full truncate text-center font-mono text-[12px] leading-none transition-colors md:block ${
                         here ? "text-primary" : done ? "text-on-surface-variant" : "text-on-surface-variant/55"
                       }`}
                     >

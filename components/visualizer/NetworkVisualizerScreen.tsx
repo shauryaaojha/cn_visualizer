@@ -34,6 +34,7 @@ export function NetworkVisualizerScreen({ path, title, blurb, operation }: Props
       sidebar={<NetworkSidebar />}
       canvas={<NetworkCanvas />}
       use={useNetStore}
+      hint="Click any device or link on the stage to inspect it. Clicking a link jumps to where the frame crosses it."
     />
   );
 }

@@ -19,6 +19,7 @@ import type {
   RoutingTableEntry,
   StepMessage,
 } from "@/types/visualization";
+import { ask, near } from "./lessonKit.ts";
 
 export const ROUTER_IDS = ["A", "B", "C", "D", "E", "F"];
 export const MIN_ROUTERS = 3;
@@ -374,8 +375,134 @@ function distanceVectorProgram(params: RoutingParams): RoutingProgram {
   };
 }
 
+// --- timeline labels and Predict questions (ARCHITECTURE.md §9a) ------------
+
+const metricText = (m: number) => (m >= RIP_INFINITY ? "16 (unreachable)" : String(m));
+
+function annotateForwarding(prog: RoutingProgram): RoutingProgram {
+  let askedMatch = false;
+  let askedTtl = false;
+  prog.steps.forEach((st, i) => {
+    const table = st.tables[0];
+    const router = table?.routerId ?? "?";
+    const codes = st.codeLines ?? [];
+    const pk = st.panels[0]?.packets[0];
+    if (codes[0] === 1) st.label = `at ${router}`;
+    else if (codes.join() === "2,3") {
+      st.label = `${router} match`;
+      const winner = table.entries.find((e) => e.state === "changed");
+      if (winner && !askedMatch) {
+        askedMatch = true;
+        const dest = prog.stats.find((x) => x.label === "Destination")?.value ?? "the destination";
+        st.predict = ask(
+          `${router} has three routes. Which one does it use for ${dest}?`,
+          winner.destination,
+          table.entries.map((e) => e.destination).concat(["0.0.0.0/0"]),
+          "Longest-prefix match: of every route that matches, the one with the most network bits wins, because it is the most specific.",
+          i,
+        );
+      }
+    } else if (codes.join() === "4,5") {
+      st.label = pk?.state === "delivered" ? "✓ server" : `${router} →`;
+      const ttl = Number(pk?.label.replace("TTL ", ""));
+      if (!askedTtl && Number.isFinite(ttl)) {
+        askedTtl = true;
+        st.predict = ask(
+          `The packet arrived at ${router} with TTL ${ttl + 1}. What TTL does it leave with?`,
+          String(ttl),
+          near(ttl, [1, -1, 2]).concat(["64"]),
+          "Every router decrements TTL by one before forwarding, so a looping packet eventually dies instead of circling forever.",
+          ttl,
+        );
+      }
+    } else if (st.message?.tone === "error") {
+      st.label = codes[0] === 4 ? "TTL 0" : codes[0] === 2 ? "no route" : "✕ drop";
+      if (codes[0] === 5)
+        st.predict = ask(
+          `${router}'s outgoing link is down, and its route is static. What happens to the packet?`,
+          "Dropped — static routes do not find detours",
+          ["It is sent back to the PC", "The router finds another path", "It waits in the queue until the link returns"],
+          "A static route is a sentence someone typed. Nothing re-computes it when the link underneath fails.",
+          2,
+        );
+      if (codes[0] === 4)
+        st.predict = ask(
+          `${router} decrements TTL and it hits 0. What does the router do?`,
+          "Discards the packet",
+          ["Forwards it anyway", "Resets TTL to 64", "Sends it back one hop"],
+          "TTL 0 means the packet has lived long enough. The router drops it (and would send an ICMP Time Exceeded back).",
+          1,
+        );
+    }
+  });
+  return prog;
+}
+
+function metricOf(st: RoutingStep, router: string, dest: string) {
+  return st.tables.find((t) => t.routerId === router)?.entries.find((e) => e.destination === dest)?.metric;
+}
+
+function annotateDistanceVector(prog: RoutingProgram, params: RoutingParams): RoutingProgram {
+  const steps = prog.steps;
+  const ids = steps[0]?.tables.map((t) => t.routerId!) ?? [];
+  const first = ids[0];
+  const far = ids.at(-1)!;
+  const cutAt = steps.findIndex((s) => s.message?.tone === "error" && s.codeLines?.[0] === 5);
+  const stableRounds = Number(prog.stats.find((x) => x.label === "Rounds")?.value ?? 0);
+  steps.forEach((st, i) => {
+    const recovering = cutAt >= 0 && i > cutAt;
+    if (i === 0) st.label = "start";
+    else if (i === cutAt) st.label = "✂ cut";
+    else if (recovering) st.label = st.converged ? "re-settled" : `recover ${st.round - stableRounds}`;
+    else st.label = st.converged ? "converged" : `round ${st.round}`;
+  });
+  // Round 1: what does the first router learn about the router two hops away?
+  const r1 = steps.findIndex((s) => s.round === 1);
+  const two = ids[2];
+  if (r1 > 0 && two) {
+    const m = metricOf(steps[r1], first, two);
+    const before = metricOf(steps[r1 - 1], first, two);
+    if (m !== undefined && before !== undefined)
+      steps[r1].predict = ask(
+        `After ${ids[1]} shares its vector once, what is ${first}'s cost to ${two}?`,
+        metricText(m),
+        [metricText(before), ...near(m, [1, -1, 2]).map(Number).map(metricText)],
+        `${first} adds its link cost to ${ids[1]} to what ${ids[1]} advertises for ${two}: c(${first},${ids[1]}) + D(${ids[1]},${two}).`,
+        r1,
+      );
+  }
+  // How many rounds until quiet?
+  const conv = steps.findIndex((s) => s.converged);
+  if (conv > 0)
+    steps[conv].predict = ask(
+      `With ${ids.length} routers in a chain, how many rounds until a whole round changes nothing?`,
+      String(stableRounds),
+      near(stableRounds, [-1, 1, 2]),
+      `News travels one hop per round. It takes ${stableRounds - 1} rounds to reach the far end of the chain, and one more round in which nothing changes to know it is over.`,
+      ids.length,
+    );
+  // After the cut, where does the first router end up for the far one?
+  if (cutAt >= 0) {
+    const last = steps.at(-1)!;
+    const m = metricOf(last, first, far);
+    if (m !== undefined && steps.length - 1 > cutAt) {
+      const cutId = params.faults.find((f) => f.kind === "linkDown");
+      steps[steps.length - 1].predict = ask(
+        `${cutId && "id" in cutId ? cutId.id : "A link"} is down. When the routers settle, what does ${first} list as its cost to ${far}?`,
+        metricText(m),
+        [metricText(metricOf(steps[cutAt], first, far) ?? 1), metricText(RIP_INFINITY), "0", String(Math.max(1, (m % RIP_INFINITY) + 3))],
+        m >= RIP_INFINITY
+          ? "The chain is split, so there is no path at all. RIP only knows that once the metric has counted all the way up to 16."
+          : "A path still exists, so the routers settle on it — but only after the bad news has spread one hop per round.",
+        cutAt,
+      );
+    }
+  }
+  return prog;
+}
+
 /** Compile one deterministic routing experiment into player frames. */
 export function runRoutingOperation(params: RoutingParams): RoutingProgram {
   const safe = { ...ROUTING_DEFAULTS, ...params, routerCount: Math.max(MIN_ROUTERS, Math.min(MAX_ROUTERS, params.routerCount)), faults: params.faults ?? [], linkCosts: params.linkCosts ?? {} };
-  return safe.op === "ipForwarding" ? forwardingProgram(safe) : distanceVectorProgram(safe);
+  return safe.op === "ipForwarding" ? annotateForwarding(forwardingProgram(safe)) : annotateDistanceVector(distanceVectorProgram(safe), safe);
 }

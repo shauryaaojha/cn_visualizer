@@ -27,6 +27,7 @@ export function AddressVisualizerScreen({ path, title, blurb, operation }: Props
       sidebar={<AddressSidebar />}
       canvas={<AddressCanvas />}
       use={useAddressStore}
+      hint="Click any bit, octet or address block to inspect it — a bit shows what flipping it would do."
     />
   );
 }
