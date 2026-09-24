@@ -67,7 +67,7 @@ export function OsiStack({ scroller }: { scroller: RefObject<HTMLElement | null>
   const top = shown > 0 ? LAYERS[shown - 1] : null;
 
   return (
-    <section ref={section} className={reduce ? "" : "relative h-[300vh]"}>
+    <section ref={section} className={reduce ? "" : "relative h-[180vh]"}>
       <div
         className={`${reduce ? "" : "sticky top-0 h-[calc(100dvh-64px)]"} mx-auto grid w-full max-w-6xl items-center gap-8 px-margin py-12 md:grid-cols-[minmax(0,5fr)_minmax(0,6fr)]`}
       >

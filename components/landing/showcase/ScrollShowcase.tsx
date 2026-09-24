@@ -58,7 +58,7 @@ export function ScrollShowcase({ scroller, eyebrow, title, blurb, steps, href, c
     <section
       ref={section}
       className={reduce ? "" : "relative"}
-      style={reduce ? undefined : { height: `${n * 75 + 60}vh` }}
+      style={reduce ? undefined : { height: `${n * 30 + 40}vh` }}
     >
       <div
         className={`${reduce ? "" : "sticky top-0 h-[calc(100dvh-64px)]"} mx-auto grid w-full max-w-6xl items-center gap-8 px-margin py-12 md:grid-cols-[minmax(0,5fr)_minmax(0,6fr)]`}
