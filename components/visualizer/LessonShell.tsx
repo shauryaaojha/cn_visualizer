@@ -27,6 +27,7 @@ import { PredictCard } from "@/components/visualizer/lesson/PredictCard";
 import { TimelineDock } from "@/components/visualizer/lesson/TimelineDock";
 import { RecordShell } from "@/components/visualizer/RecordShell";
 import type { PlayerSnapshot } from "@/lib/createPlayerStore";
+import { flush, recordAnswer as saveAnswer, recordFrames, sync } from "@/lib/progressClient";
 import { useLessonUi } from "@/lib/lessonUiStore";
 import { useRecordStore } from "@/lib/recordStore";
 import { useLessonKeys } from "@/lib/useLessonKeys";
@@ -80,6 +81,31 @@ export function LessonShell({ path, title, blurb, canvas, sidebar, use, hint }: 
     return () => setGate(null);
   }, [predict, recording, program, setGate]);
 
+  // --- Progress: which frames this sitting has actually shown ---
+  // A new program (Setup changed, or a new lesson) is a new sitting.
+  const seen = useRef(new Set<number>());
+  const total = program?.steps.length ?? 0;
+  useEffect(() => {
+    seen.current = new Set();
+  }, [program]);
+  useEffect(() => {
+    if (!total) return;
+    seen.current.add(s.stepIndex);
+    recordFrames(path, seen.current.size, total, s.stepIndex);
+  }, [path, total, s.stepIndex]);
+  useEffect(() => {
+    void sync();
+    const onHide = () => document.visibilityState === "hidden" && flush();
+    document.addEventListener("visibilitychange", onHide);
+    window.addEventListener("pagehide", flush);
+    return () => {
+      document.removeEventListener("visibilitychange", onHide);
+      window.removeEventListener("pagehide", flush);
+      // Leaving the lesson inside the app (no pagehide): send now, not in 4 s.
+      void sync();
+    };
+  }, []);
+
   const pendingPrediction = predict && pending !== null ? (program?.steps[pending]?.predict ?? null) : null;
 
   if (recording) {
@@ -110,6 +136,7 @@ export function LessonShell({ path, title, blurb, canvas, sidebar, use, hint }: 
                 onAnswer={(right) => {
                   if (pending !== null) answered.current.add(pending);
                   recordAnswer(right);
+                  if (pendingPrediction) saveAnswer(path, pendingPrediction.question, right);
                 }}
                 onReveal={release}
               />

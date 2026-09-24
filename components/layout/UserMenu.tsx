@@ -8,19 +8,15 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { Icon } from "@/components/ui/Icon";
-
-type Me = { name?: string | null; image?: string | null } | null;
+import { getMe, type Me } from "@/lib/sessionClient";
 
 export function UserMenu() {
   const pathname = usePathname();
-  const [me, setMe] = useState<Me | undefined>(undefined);
+  const [me, setMe] = useState<Me | null | undefined>(undefined);
 
   useEffect(() => {
     let live = true;
-    fetch("/api/auth/session")
-      .then((r) => (r.ok ? r.json() : null))
-      .then((s: { user?: Me } | null) => live && setMe(s?.user ?? null))
-      .catch(() => live && setMe(null));
+    void getMe().then((m) => live && setMe(m));
     return () => {
       live = false;
     };

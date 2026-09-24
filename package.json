@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint .",
-    "test": "node --experimental-strip-types tests/engines.test.mts && node --experimental-strip-types tests/auth.test.mts"
+    "test": "node --experimental-strip-types tests/engines.test.mts && node --experimental-strip-types tests/auth.test.mts && node --experimental-strip-types tests/progress.test.mts"
   },
   "dependencies": {
     "@phosphor-icons/react": "^2.1.10",

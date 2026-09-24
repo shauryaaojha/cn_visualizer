@@ -4,6 +4,9 @@ import { redirect } from "next/navigation";
 import { signOut } from "@/auth";
 import { AccountShell, Panel } from "@/components/account/AccountShell";
 import { Icon } from "@/components/ui/Icon";
+import { ProgressBoard } from "@/components/account/ProgressBoard";
+import { SyncOnView } from "@/components/account/SyncOnView";
+import { getProgress } from "@/lib/progressStore";
 import { requireUser } from "@/lib/session";
 
 export const metadata: Metadata = { title: "Dashboard — CN_Visualizer" };
@@ -22,6 +25,7 @@ export default async function DashboardPage() {
   const user = await requireUser("/dashboard");
   if (!user.profile) redirect("/onboarding?next=/dashboard");
   const p = user.profile;
+  const progress = await getProgress(user._id.toHexString());
 
   async function leave() {
     "use server";
@@ -33,9 +37,13 @@ export default async function DashboardPage() {
       icon="account_circle"
       eyebrow={user.mode === "srm" ? "SRM ACCOUNT" : "ACCOUNT"}
       title={`Hi, ${user.name.split(" ")[0]}`}
-      blurb="Your account is set up. Lessons you finish and Predict questions you answer will be tracked here."
+      blurb="Your progress across every unit. It saves as you watch, on any device you sign in on."
+      width="max-w-6xl"
     >
-      <div className="grid gap-md md:grid-cols-[1fr_16rem]">
+      <SyncOnView />
+      <ProgressBoard items={progress} />
+
+      <div className="mt-md grid gap-md md:grid-cols-[1fr_16rem]">
         <Panel>
           <div className="flex flex-wrap items-center gap-2">
             <h2 className="font-headline-sm text-headline-sm text-on-surface">Profile</h2>

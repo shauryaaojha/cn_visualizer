@@ -6,6 +6,7 @@ import { AccountShell, Panel } from "@/components/account/AccountShell";
 import { Icon } from "@/components/ui/Icon";
 import { SIGN_IN_ERRORS, type SignInError } from "@/lib/authRules";
 import { safeNext } from "@/lib/session";
+import { getUser } from "@/lib/users";
 import { SrmCodeForm } from "./SrmCodeForm";
 
 export const metadata: Metadata = { title: "Sign in — CN_Visualizer" };
@@ -26,7 +27,10 @@ export default async function LoginPage({
 }) {
   const params = await searchParams;
   const next = safeNext(params.next);
-  if ((await auth())?.user?.id) redirect(next);
+  // Skip the page only if the cookie's user still exists. Otherwise a stale
+  // cookie (deleted account, reset database) loops /login ⇄ /dashboard forever.
+  const uid = (await auth())?.user?.id;
+  if (uid && (await getUser(uid))) redirect(next);
 
   const code = typeof params.error === "string" ? params.error : undefined;
   const error = code ? (SIGN_IN_ERRORS[code as SignInError] ?? "Sign-in did not go through. Please try again.") : null;
