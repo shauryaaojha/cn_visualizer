@@ -13,10 +13,14 @@ import type { Config } from "tailwindcss";
 //   coral    chalk pink    failure — collision, drop, link down, bit error
 //   tertiary chalk blue    the teacher's voice — notes, annotations, asides
 //
-// Type follows vis.html's split exactly: Kalam (handwriting) for anything a
-// person says — headings, prose, buttons — and JetBrains Mono for anything a
-// machine says — addresses, bits, tables, code, labels. That contrast is what
-// makes it read as a lesson rather than a dashboard.
+// Type is a three-way split. Kalam (handwriting) is the teacher at the board —
+// headings only, where it has room to be charming. Atkinson Hyperlegible is
+// the reading voice — prose, notes, buttons. JetBrains Mono is anything the
+// network says — addresses, bits, tables, code, labels.
+//
+// Scale: 1.25 ratio off a 16px body. Nothing a person needs to read is below
+// 12px; the old 9–11px labels were illegible on a laptop and vanished
+// entirely in a compressed recording.
 
 const config: Config = {
   darkMode: "class",
@@ -28,26 +32,26 @@ const config: Config = {
     extend: {
       colors: {
         // --- the board ---
-        surface: "#16342A",
-        "surface-dim": "#12291F",
-        background: "#16342A",
-        "surface-container-lowest": "#12291F",
-        "surface-container-low": "#1C3E32",
-        "surface-container": "#1F4436",
-        "surface-container-high": "#26503F",
-        "surface-container-highest": "#2C5A47",
-        "surface-variant": "#26503F",
-        "surface-bright": "#2C5A47",
+        surface: "#24503F",
+        "surface-dim": "#1E4234",
+        background: "#24503F",
+        "surface-container-lowest": "#1E4234",
+        "surface-container-low": "#2A5A47",
+        "surface-container": "#2E604C",
+        "surface-container-high": "#356B55",
+        "surface-container-highest": "#3C765E",
+        "surface-variant": "#356B55",
+        "surface-bright": "#3C765E",
         "inverse-surface": "#F3F1E7",
-        "inverse-on-surface": "#1C3E32",
+        "inverse-on-surface": "#2A5A47",
         "on-background": "#F3F1E7",
         "on-surface": "#F3F1E7",
 
         // --- chalk yellow: the writing hand ---
         primary: "#F0D264",
-        "on-primary": "#16342A",
+        "on-primary": "#24503F",
         "primary-container": "#F0D264",
-        "on-primary-container": "#16342A",
+        "on-primary-container": "#24503F",
         "primary-fixed": "#F7E7A8",
         "primary-fixed-dim": "#F0D264",
         "on-primary-fixed": "#3A2F05",
@@ -56,35 +60,35 @@ const config: Config = {
         "surface-tint": "#F0D264",
 
         // --- chalk dust neutrals ---
-        "on-surface-variant": "#9FB3AA",
-        outline: "#6E8F82",
-        "outline-variant": "#3E5B4E",
+        "on-surface-variant": "#B8CBC2",
+        outline: "#7FA293",
+        "outline-variant": "#4E7A66",
 
         // --- secondary / tertiary ---
         secondary: "#D9DED4",
-        "on-secondary": "#1C3E32",
-        "secondary-container": "#2C5A47",
+        "on-secondary": "#2A5A47",
+        "secondary-container": "#3C765E",
         "on-secondary-container": "#D9DED4",
         "secondary-fixed": "#EAEDE6",
         "secondary-fixed-dim": "#D9DED4",
-        "on-secondary-fixed": "#12291F",
-        "on-secondary-fixed-variant": "#2C5A47",
+        "on-secondary-fixed": "#1E4234",
+        "on-secondary-fixed-variant": "#3C765E",
         tertiary: "#8FCBE0",
         "on-tertiary": "#0B2C38",
         "tertiary-container": "#8FCBE0",
         "on-tertiary-container": "#0B2C38",
 
         // --- error ---
-        error: "#E39AA6",
+        error: "#EDB0BA",
         "error-container": "#8C4450",
-        "on-error": "#16342A",
+        "on-error": "#24503F",
         "on-error-container": "#F7D6DC",
 
         // --- semantic accents ---
         signal: "#F0D264", // data / payload
         amber: "#F0A868", // control / decision / pending
         mint: "#B9E39A", // delivered / converged / OK
-        coral: "#E39AA6", // collision / drop / link down
+        coral: "#EDB0BA", // collision / drop / link down
         violet: "#C9A8F5", // control plane / protocol
         note: "#8FCBE0", // the teacher's voice
       },
@@ -110,26 +114,27 @@ const config: Config = {
         "headline-lg": ["var(--font-kalam)", "Kalam", "cursive"],
         "headline-md": ["var(--font-kalam)", "Kalam", "cursive"],
         "headline-sm": ["var(--font-kalam)", "Kalam", "cursive"],
-        "body-lg": ["var(--font-kalam)", "Kalam", "cursive"],
-        "body-md": ["var(--font-kalam)", "Kalam", "cursive"],
-        "body-sm": ["var(--font-kalam)", "Kalam", "cursive"],
+        "body-lg": ["var(--font-atkinson)", "Atkinson Hyperlegible Next", "system-ui", "sans-serif"],
+        "body-md": ["var(--font-atkinson)", "Atkinson Hyperlegible Next", "system-ui", "sans-serif"],
+        "body-sm": ["var(--font-atkinson)", "Atkinson Hyperlegible Next", "system-ui", "sans-serif"],
         hand: ["var(--font-kalam)", "Kalam", "cursive"],
+        // The reading voice — prose, notes, buttons.
+        sans: ["var(--font-atkinson)", "Atkinson Hyperlegible Next", "system-ui", "sans-serif"],
         // Machine type — anything the network says.
         mono: ["var(--font-jetbrains-mono)", "JetBrains Mono", "monospace"],
         "label-caps": ["var(--font-jetbrains-mono)", "JetBrains Mono", "monospace"],
         "code-snippet": ["var(--font-jetbrains-mono)", "JetBrains Mono", "monospace"],
       },
       fontSize: {
-        // Kalam runs small for its point size, so the prose sizes are nudged up.
-        "body-lg": ["19px", { lineHeight: "1.55", fontWeight: "400" }],
-        "body-md": ["15px", { lineHeight: "1.5", fontWeight: "400" }],
-        "body-sm": ["13px", { lineHeight: "1.45", fontWeight: "400" }],
-        "label-caps": ["10px", { lineHeight: "1.0", letterSpacing: "0.1em", fontWeight: "600" }],
-        "code-snippet": ["12px", { lineHeight: "1.5", fontWeight: "400" }],
-        "headline-xl": ["42px", { lineHeight: "1.15", fontWeight: "700" }],
-        "headline-lg": ["34px", { lineHeight: "1.2", fontWeight: "700" }],
-        "headline-md": ["25px", { lineHeight: "1.3", fontWeight: "700" }],
-        "headline-sm": ["19px", { lineHeight: "1.3", fontWeight: "700" }],
+        "body-lg": ["18px", { lineHeight: "1.6", fontWeight: "400" }],
+        "body-md": ["16px", { lineHeight: "1.55", fontWeight: "400" }],
+        "body-sm": ["14px", { lineHeight: "1.5", fontWeight: "400" }],
+        "label-caps": ["12px", { lineHeight: "1.2", letterSpacing: "0.08em", fontWeight: "600" }],
+        "code-snippet": ["13px", { lineHeight: "1.5", fontWeight: "400" }],
+        "headline-xl": ["clamp(44px, 6vw, 76px)", { lineHeight: "1.02", fontWeight: "700", letterSpacing: "-0.01em" }],
+        "headline-lg": ["40px", { lineHeight: "1.1", fontWeight: "700" }],
+        "headline-md": ["28px", { lineHeight: "1.2", fontWeight: "700" }],
+        "headline-sm": ["21px", { lineHeight: "1.3", fontWeight: "700" }],
       },
     },
   },

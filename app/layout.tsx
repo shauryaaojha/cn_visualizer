@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
-import { JetBrains_Mono, Kalam } from "next/font/google";
+import { Atkinson_Hyperlegible_Next, JetBrains_Mono, Kalam } from "next/font/google";
+import { BlockTransition } from "@/components/layout/BlockTransition";
 import "./globals.css";
 
 // Kalam is the teacher's hand; JetBrains Mono is the network's. Nothing on a
@@ -9,6 +10,20 @@ const kalam = Kalam({
   weight: ["400", "700"],
   variable: "--font-kalam",
   display: "swap",
+});
+
+// Atkinson Hyperlegible is the reading voice — prose, labels, buttons. Kalam
+// is lovely at headline size and exhausting at 13px, so it no longer carries
+// paragraphs. Atkinson was drawn for low-vision legibility, which is exactly
+// what a compressed screen recording needs.
+const atkinson = Atkinson_Hyperlegible_Next({
+  subsets: ["latin"],
+  weight: ["400", "500", "600", "700"],
+  variable: "--font-atkinson",
+  display: "swap",
+  // next/font has no metric overrides for this family yet; without this it
+  // warns on every compile.
+  adjustFontFallback: false,
 });
 
 const jetbrainsMono = JetBrains_Mono({
@@ -30,14 +45,15 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    // Every font is self-hosted: next/font vendors Kalam and JetBrains Mono at
-    // build time, and Material Symbols is a local subset (see globals.css).
+    // Every font is self-hosted: next/font vendors Kalam, Atkinson and JetBrains Mono at
+    // build time, and icons are Phosphor SVGs bundled into the JS.
     // The app makes no network requests at runtime — it works with wifi off.
     <html lang="en" className="dark">
       <body
-        className={`${kalam.variable} ${jetbrainsMono.variable} font-body-md text-body-md text-on-background antialiased`}
+        className={`${kalam.variable} ${atkinson.variable} ${jetbrainsMono.variable} font-body-md text-body-md text-on-background antialiased`}
       >
         {children}
+        <BlockTransition />
       </body>
     </html>
   );

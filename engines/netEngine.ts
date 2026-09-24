@@ -24,6 +24,7 @@ import type {
   Packet,
   StepMessage,
 } from "@/types/visualization";
+import { ask, near, tag } from "./lessonKit.ts";
 
 export const HOST_IDS = ["A", "B", "C", "D", "E", "F", "G", "H"];
 export const MIN_HOSTS = 4;
@@ -391,12 +392,14 @@ function topoFailure(from: string, to: string, hosts: number): NetProgram {
     description: string,
     codeLines: number[],
     message?: StepMessage,
+    extra?: Pick<NetStep, "label" | "predict">,
   ) => {
     steps.push({
       panels: specs.map((s) => buildPanel(s, { from, to, ...o(s) })),
       description,
       codeLines,
       message,
+      ...extra,
     });
   };
 
@@ -405,6 +408,8 @@ function topoFailure(from: string, to: string, hosts: number): NetProgram {
     () => ({ cutId: null, hop: -1 }),
     `The same ${hosts} hosts, wired five different ways. ${from} wants to send one frame to ${to}. Watch how differently that journey looks before anything is broken.`,
     [1, 2],
+    undefined,
+    { label: "wired" },
   );
 
   const maxHealthy = Math.max(...specs.map((s) => healthy.get(s.id)!.length));
@@ -416,6 +421,20 @@ function topoFailure(from: string, to: string, hosts: number): NetProgram {
         ? `${from} transmits. Mesh has a direct link and is already done; the bus has to cross the whole backbone.`
         : `Hop ${h + 1}. ${arrived.length ? `${arrived.join(", ")} already delivered — hop count is the topology's real cost.` : "The frame moves one link closer."}`,
       [3, 4],
+      undefined,
+      {
+        label: `hop ${h + 1}`,
+        predict:
+          h === 0
+            ? ask(
+                `All five send ${from} → ${to} at once. Which topology delivers first?`,
+                "Mesh",
+                ["Bus", "Star", "Ring", "Hybrid"],
+                "A full mesh has a direct link between every pair of hosts, so it is always one hop.",
+                2,
+              )
+            : undefined,
+      },
     );
   }
 
@@ -427,6 +446,7 @@ function topoFailure(from: string, to: string, hosts: number): NetProgram {
     "All five delivered. On a healthy network every topology looks equally good — which is exactly why topology choice looks like an arbitrary decision until something breaks.",
     [4],
     OK("5 / 5 delivered — no failures yet"),
+    { label: "5/5 ✓" },
   );
 
   // Phase 2 — one cut each.
@@ -435,6 +455,7 @@ function topoFailure(from: string, to: string, hosts: number): NetProgram {
     "Now cut exactly one link in each — the middle hop of the route it was just using, marked in red. One link. Not a device, not a power cut. The most ordinary failure a network suffers.",
     [6],
     { text: "1 link severed in each topology", tone: "warn" },
+    { label: "✂ cut" },
   );
 
   const maxCut = Math.max(...specs.map((s) => attempts.get(s.id)!.path.length));
@@ -445,6 +466,8 @@ function topoFailure(from: string, to: string, hosts: number): NetProgram {
         ? `${from} transmits again. The frames about to die have not noticed anything yet — a sender cannot see a break further down the path.`
         : `Hop ${h + 1}. The survivors are rerouting; the rest have already met the cut.`,
       [8, 9],
+      undefined,
+      { label: `↻${h + 1}` },
     );
   }
 
@@ -462,6 +485,16 @@ function topoFailure(from: string, to: string, hosts: number): NetProgram {
     {
       text: `${survivors.length} / ${specs.length} survived — ${survivors.map((s) => s.label.toLowerCase()).join(" and ") || "none"} rerouted`,
       tone: "warn",
+    },
+    {
+      label: `${survivors.length}/5`,
+      predict: ask(
+        "One link cut in each topology. How many of the five still deliver the frame?",
+        `${survivors.length} of 5`,
+        ["5 of 5", "0 of 5", "1 of 5", "3 of 5", "4 of 5"],
+        `Only ${survivors.map((s) => s.label.toLowerCase()).join(" and ") || "none"} have a second path: a ring can go the other way round, a mesh has spare links.`,
+        1,
+      ),
     },
   );
 
@@ -486,6 +519,7 @@ function topoFailure(from: string, to: string, hosts: number): NetProgram {
       ),
       description: `${spec.label}: ${whyFor(spec, a, true, healthy.get(spec.id)!.length)}`,
       codeLines: a.survived ? [10, 11] : [12, 13],
+      label: spec.label.toLowerCase(),
       message: a.survived
         ? OK(`${spec.label} survives — single point of failure: ${spec.spof}`)
         : FAIL(`${spec.label} partitioned — single point of failure: ${spec.spof}`),
@@ -507,6 +541,7 @@ function topoFailure(from: string, to: string, hosts: number): NetProgram {
       "Redundancy is the only thing separating them. Mesh buys it with links, ring gets it free from its loop, and bus, star and hybrid each concentrate the whole network's fate into one cable. Cost, resilience — pick two.",
     codeLines: [10, 11, 12, 13],
     message: OK("Survivors: ring (two directions) and mesh (alternate links)"),
+    label: "takeaway",
   });
 
   return {
@@ -542,8 +577,13 @@ function singleTopo(spec: TopoSpec, from: string, to: string, cutId: string | nu
   const healthy = attempt(spec, from, to, null);
   const suggested = defaultCut(spec, from, to);
 
-  const push = (o: Omit<PanelOpts, "from" | "to">, description: string, codeLines: number[], message?: StepMessage) =>
-    steps.push({ panels: [buildPanel(spec, { from, to, ...o })], description, codeLines, message });
+  const push = (
+    o: Omit<PanelOpts, "from" | "to">,
+    description: string,
+    codeLines: number[],
+    message?: StepMessage,
+    extra?: Pick<NetStep, "label" | "predict">,
+  ) => steps.push({ panels: [buildPanel(spec, { from, to, ...o })], description, codeLines, message, ...extra });
 
   if (healthy.path.length === 0) {
     push(
@@ -559,23 +599,41 @@ function singleTopo(spec: TopoSpec, from: string, to: string, cutId: string | nu
     { cutId: null, hop: -1 },
     `${spec.label} topology: ${spec.sub}. ${spec.nodes.filter((n) => n.kind === "host").length} hosts, ${spec.links.length} links. ${from} is about to send one frame to ${to}.`,
     [1, 2],
+    undefined,
+    { label: "wired" },
   );
 
-  for (let h = 0; h < healthy.path.length; h++) {
+  const hops = healthy.path.length;
+  for (let h = 0; h < hops; h++) {
     push(
       { cutId: null, hop: h },
       h === 0
         ? `${from} puts the frame on the wire.`
-        : `Hop ${h + 1} of ${healthy.path.length} — the frame moves one link closer to ${to}.`,
+        : `Hop ${h + 1} of ${hops} — the frame moves one link closer to ${to}.`,
       [3, 4],
+      undefined,
+      {
+        label: `hop ${h + 1}`,
+        predict:
+          h === 0
+            ? ask(
+                `On this ${spec.label.toLowerCase()}, how many links will the frame cross to get from ${from} to ${to}?`,
+                String(hops),
+                near(hops, hops > 1 ? [-1, 1, 3] : [1, 2, 3]),
+                `The shortest path ${from} → ${to} here is ${hops} link${hops === 1 ? "" : "s"}${spec.id === "bus" ? " — each host hangs off its own tap, so a bus costs two drops plus the backbone between them" : ""}.`,
+                hops,
+              )
+            : undefined,
+      },
     );
   }
 
   push(
-    { cutId: null, hop: healthy.path.length, verdict: OK(`delivered · ${healthy.path.length} hops`) },
-    `Delivered in ${healthy.path.length} hop${healthy.path.length === 1 ? "" : "s"}. The single point of failure here is ${spec.spof}.`,
+    { cutId: null, hop: hops, verdict: OK(`delivered · ${hops} hops`) },
+    `Delivered in ${hops} hop${hops === 1 ? "" : "s"}. The single point of failure here is ${spec.spof}.`,
     [5],
     OK("delivered"),
+    { label: "✓" },
   );
 
   if (cutId) {
@@ -586,12 +644,20 @@ function singleTopo(spec: TopoSpec, from: string, to: string, cutId: string | nu
       `${link ? linkLabel(spec, link) : "One link"} cut. Nothing tells ${from} that anything has changed — it will simply try again.`,
       [7, 8],
       { text: "link severed", tone: "warn" },
+      { label: "✂ cut" },
     );
 
     for (let h = 0; h < a.path.length; h++) {
-      push({ cutId, hop: h }, `Retrying — hop ${h + 1}.`, [9]);
+      push({ cutId, hop: h }, `Retrying — hop ${h + 1}.`, [9], undefined, { label: `↻${h + 1}` });
     }
 
+    const cutName = link ? linkLabel(spec, link) : "That link";
+    const offRoute = a.survived && a.path.length === healthy.path.length;
+    const outcome = !a.survived
+      ? "Dropped — no path is left"
+      : offRoute
+        ? "Delivered on the same path"
+        : `Rerouted — ${a.path.length} hops`;
     push(
       {
         cutId,
@@ -603,6 +669,21 @@ function singleTopo(spec: TopoSpec, from: string, to: string, cutId: string | nu
       a.survived
         ? OK(`${spec.label} survives the cut — rerouted in ${a.path.length} hops`)
         : FAIL(`${spec.label} is partitioned — ${to} is unreachable`),
+      {
+        label: a.survived ? (offRoute ? "same path" : "reroute") : "✕ drop",
+        predict: ask(
+          `${cutName} is cut. What happens to ${from}'s next frame to ${to}?`,
+          outcome,
+          [
+            "Dropped — no path is left",
+            "Delivered on the same path",
+            `Rerouted — ${healthy.path.length + 1} hops`,
+            `Rerouted — ${healthy.path.length + 2} hops`,
+          ],
+          whyFor(spec, a, cutId === suggested, healthy.path.length),
+          a.path.length + (a.survived ? 1 : 0),
+        ),
+      },
     );
   }
 
@@ -1208,29 +1289,155 @@ export function suggestedCut(op: NetOp, hosts: number, from: string, to: string)
   return spec ? defaultCut(spec, from, to) : null;
 }
 
+/**
+ * Timeline labels and Predict questions for the hand-scripted lessons, whose
+ * frames are a fixed sequence. (Topologies build theirs inline, because their
+ * frame count depends on the student's inputs.)
+ */
+function scripted(op: NetOp, prog: NetProgram, cutId: string | null): NetProgram {
+  const s = prog.steps;
+  switch (op) {
+    case "introNetwork": {
+      const dropped = s[s.length - 1].message?.tone === "error";
+      const packets = ask(
+        "Alice's NIC splits 'HELLO' into packets of at most 2 bytes of data. How many packets?",
+        "3",
+        ["1", "2", "5"],
+        "HE + LL + O — the last packet is simply shorter. Each one gets its own header, which is where the overhead comes from.",
+        2,
+      );
+      if (dropped) {
+        const which = cutId === "l1" ? "Alice–Switch" : "Switch–Bob";
+        tag(s, ["message", "packetise", ...(cutId === "l1" ? [] : ["P1 → SW", "forward"]), "✕ drop"], {
+          1: packets,
+          [s.length - 1]: ask(
+            `The ${which} wire is cut. What happens to P1?`,
+            "It is lost — nothing retries at this layer",
+            ["The switch holds it until the wire is fixed", "It takes another path", "Bob asks for it again straight away"],
+            "There is only one path and no one below the transport layer keeps a copy, so the packet simply dies on the wire.",
+            1,
+          ),
+        });
+      } else {
+        tag(s, ["message", "packetise", "P1 → SW", "forward", "P1 ✓", "HELLO"], {
+          1: packets,
+          3: ask(
+            "P1 reaches the switch. What does the switch read to pick the output port?",
+            "The destination MAC address",
+            ["The destination IP address", "The payload 'HE'", "The sequence number"],
+            "A switch is a layer-2 device: it looks the destination MAC up in its MAC table and sends the frame out of that one port.",
+            3,
+          ),
+          5: ask(
+            "P2 could arrive before P1. How does Bob put 'HELLO' back in order?",
+            "By the sequence numbers in the headers",
+            ["By arrival time", "The switch reorders them", "He can't — the message is garbled"],
+            "Every packet carries Seq: i, so Bob can buffer early arrivals and slot them into place.",
+            0,
+          ),
+        });
+      }
+      break;
+    }
+    case "typePan":
+      tag(s, ["piconet", "sync"], {
+        1: ask(
+          "Roughly how far apart can devices in a PAN be?",
+          "About 10 m",
+          ["About 1 km", "About 50 km", "Across a country"],
+          "A PAN is built around one person — Bluetooth and Zigbee are designed for around 10 m.",
+          1,
+        ),
+      });
+      break;
+    case "typeLan":
+      tag(s, ["LAN", "unicast"], {
+        1: ask(
+          "PC-1 sends a print job to the printer. Which ports does the switch send it out of?",
+          "Only the printer's port",
+          ["Every port", "Every port except PC-1's", "The server's and the printer's"],
+          "Once the switch has learned the printer's MAC it forwards to that port alone — that is what makes a switch better than a hub.",
+          2,
+        ),
+      });
+      break;
+    case "typeMan":
+      tag(s, ["MAN", "metro"], {
+        1: ask(
+          "What usually carries traffic between the sites of a MAN?",
+          "A fibre ring across the city",
+          ["Bluetooth", "A single Ethernet switch", "Satellite links"],
+          "A MAN spans 5–50 km, so sites are joined by high-capacity optical fibre, often laid as a ring for redundancy.",
+          0,
+        ),
+      });
+      break;
+    case "typeWan":
+      tag(s, ["WAN", "ocean"], {
+        1: ask(
+          "New York to Tokyo and back over submarine fibre. Roughly what round-trip time?",
+          "About 150 ms",
+          ["About 2 ms", "About 15 ms", "About 3 s"],
+          "Light in fibre covers roughly 200 km per ms, and the round trip is tens of thousands of km — distance alone costs over 100 ms.",
+          3,
+        ),
+      });
+      break;
+    case "typeComparison":
+      tag(s, ["scale"]);
+      break;
+    case "switchCircuit":
+      tag(s, ["setup", "stream", "teardown"], {
+        1: ask(
+          "The circuit is reserved. What happens to its capacity when the caller stops talking?",
+          "It stays reserved — and wasted",
+          ["Other callers borrow it", "The circuit tears down automatically", "It speeds up the other calls"],
+          "A circuit is dedicated end to end for the whole call, whether or not anything is being sent. That is its big weakness for bursty data.",
+          1,
+        ),
+      });
+      break;
+    case "switchPacket":
+      tag(s, ["split", "two paths", "reassemble"], {
+        2: ask(
+          "P2 took the quieter bottom path. In what order do P1 and P2 reach the receiver?",
+          "P2 first, then P1",
+          ["P1 first, then P2", "Together", "Only P1 arrives"],
+          "Each packet is routed on its own, so packets can overtake each other. The receiver reorders them by sequence number.",
+          0,
+        ),
+      });
+      break;
+    case "switchComparison":
+      tag(s, ["race"]);
+      break;
+  }
+  return prog;
+}
+
 export function runNetOperation(p: NetRunParams): NetProgram {
   const linkDown = p.faults.find((f) => f.kind === "linkDown");
   const cutId = linkDown && "id" in linkDown ? linkDown.id : null;
 
   switch (p.op) {
     case "introNetwork":
-      return introNetwork(cutId);
+      return scripted(p.op, introNetwork(cutId), cutId);
     case "typePan":
-      return typePan();
+      return scripted(p.op, typePan(), cutId);
     case "typeLan":
-      return typeLan();
+      return scripted(p.op, typeLan(), cutId);
     case "typeMan":
-      return typeMan();
+      return scripted(p.op, typeMan(), cutId);
     case "typeWan":
-      return typeWan();
+      return scripted(p.op, typeWan(), cutId);
     case "typeComparison":
-      return typeComparison();
+      return scripted(p.op, typeComparison(), cutId);
     case "switchCircuit":
-      return switchCircuit();
+      return scripted(p.op, switchCircuit(), cutId);
     case "switchPacket":
-      return switchPacket();
+      return scripted(p.op, switchPacket(), cutId);
     case "switchComparison":
-      return switchComparison();
+      return scripted(p.op, switchComparison(), cutId);
     case "topoFailure": {
       const hosts = Math.max(MIN_HOSTS, Math.min(MAX_HOSTS, p.hosts));
       const ids = HOST_IDS.slice(0, hosts);

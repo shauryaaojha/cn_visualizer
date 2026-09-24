@@ -27,6 +27,7 @@ export function MediaVisualizerScreen({ path, title, blurb, operation }: Props) 
       sidebar={<MediaSidebar />}
       canvas={<MediaCanvas />}
       use={useMediaStore}
+      hint="Click any part of the drawing — a bit, a wire, a layer, the ray — to inspect it."
     />
   );
 }

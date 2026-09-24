@@ -11,7 +11,6 @@
 import { useMemo } from "react";
 import { Icon } from "@/components/ui/Icon";
 import { Chips, Field, Select } from "@/components/ui/Field";
-import { SidebarTabs } from "@/components/visualizer/SidebarTabs";
 import { cuttableLinks, HOST_IDS, MAX_HOSTS, MIN_HOSTS, suggestedCut } from "@/engines/netEngine";
 import { useNetStore } from "@/lib/netStore";
 import type { Fault } from "@/types/visualization";
@@ -74,14 +73,13 @@ export function NetworkSidebar() {
         : "hub";
 
   return (
-    <aside className="scroll-thin z-40 flex h-full w-72 shrink-0 flex-col overflow-y-auto border-r-[1.5px] border-dashed border-outline-variant bg-surface-container-low/95 backdrop-blur-xl md:bg-surface-container-low/80">
+    <aside className="scroll-thin z-40 flex h-full w-72 shrink-0 flex-col overflow-y-auto border-r border-outline-variant bg-surface-container-low/95 backdrop-blur-xl md:bg-surface-container-low/80">
       <div className="flex flex-1 flex-col gap-md p-md">
-        <div className="flex items-center gap-2 border-b-[1.5px] border-dashed border-outline-variant pb-md">
+        <div className="flex items-center gap-2 border-b border-outline-variant pb-md">
           <Icon name={categoryIcon} className="text-[16px] text-primary" />
-          <h2 className="font-hand text-[17px] font-bold text-primary">{categoryTitle}</h2>
+          <h2 className="font-hand text-[21px] font-bold text-primary">{categoryTitle}</h2>
         </div>
 
-        <SidebarTabs />
 
         {isTopo && (
           <>
@@ -119,8 +117,8 @@ export function NetworkSidebar() {
         {/* Faults — break the network on purpose */}
         {(isTopo || isIntro) && (
           <div className="flex flex-col gap-1">
-            <label className="flex items-center gap-1.5 font-label-caps text-[9px] uppercase tracking-[0.08em] text-coral">
-              <Icon name="warning" className="text-[13px]" /> Cut a link
+            <label className="flex items-center gap-1.5 font-label-caps text-[12px] uppercase tracking-[0.08em] text-coral">
+              <Icon name="warning" className="text-[14px]" /> Cut a link
             </label>
             {isComparison ? (
               <p className="font-body-sm text-body-sm leading-relaxed text-on-surface-variant/75">
@@ -150,7 +148,7 @@ export function NetworkSidebar() {
                     })),
                   ]}
                 />
-                <p className="font-body-sm text-[11px] leading-snug text-on-surface-variant/60">
+                <p className="font-body-sm text-[13px] leading-snug text-on-surface-variant/60">
                   {cutId
                     ? cutId === suggestion
                       ? "★ the middle hop of the current route — the interesting one to break."
@@ -164,7 +162,7 @@ export function NetworkSidebar() {
 
         <button
           onClick={() => run()}
-          className="mt-auto flex w-full items-center justify-center gap-2 rounded-md border-[1.5px] border-primary py-2.5 font-hand text-[15px] font-bold text-primary transition-colors hover:bg-primary hover:text-surface active:scale-[0.98]"
+          className="mt-auto flex w-full items-center justify-center gap-2 rounded-md border border-primary py-2.5 font-sans text-[15px] font-bold text-primary transition-colors hover:bg-primary hover:text-surface active:scale-[0.98]"
         >
           <Icon name="play_circle" className="text-[18px]" /> Re-run
         </button>

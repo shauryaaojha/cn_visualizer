@@ -37,7 +37,7 @@ export function BoardBackground() {
         className="absolute inset-0"
         style={{
           background:
-            "radial-gradient(120% 100% at 50% 40%, transparent 55%, rgba(0,0,0,0.34) 100%)",
+            "radial-gradient(120% 100% at 50% 40%, transparent 60%, rgba(0,0,0,0.2) 100%)",
         }}
       />
     </div>

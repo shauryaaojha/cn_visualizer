@@ -25,7 +25,7 @@ export function TopicCard({ title, blurb, icon, href, status = "available", stat
     >
       <div className="mb-md flex items-start justify-between">
         <span
-          className={`flex h-11 w-11 items-center justify-center rounded-lg border-[1.5px] border-dashed ${
+          className={`flex h-11 w-11 items-center justify-center rounded-lg border ${
             disabled
               ? "border-outline-variant text-on-surface-variant"
               : "border-primary/50 bg-primary/10 text-primary group-hover:bg-primary/20"
@@ -34,12 +34,12 @@ export function TopicCard({ title, blurb, icon, href, status = "available", stat
           <Icon name={icon} className="text-[22px]" />
         </span>
         {disabled ? (
-          <span className="rounded-sm border-[1.5px] border-dashed border-outline-variant px-2 py-0.5 font-label-caps text-[9px] uppercase text-on-surface-variant">
+          <span className="rounded-sm border border-outline-variant px-2 py-0.5 font-label-caps text-[12px] uppercase text-on-surface-variant">
             Soon
           </span>
         ) : (
           <Icon
-            name="arrow_outward"
+            name="east"
             className="text-[18px] text-on-surface-variant/40 transition-colors group-hover:text-primary"
           />
         )}
@@ -53,7 +53,7 @@ export function TopicCard({ title, blurb, icon, href, status = "available", stat
           {stats.map((s, i) => (
             <span
               key={s}
-              className={`rounded-sm border-[1.5px] border-dashed px-2 py-0.5 font-code-snippet text-[11px] ${
+              className={`rounded-sm border px-2 py-0.5 font-code-snippet text-[13px] ${
                 i === 0 ? "border-primary/50 bg-primary/10 text-primary" : "border-note/50 bg-note/10 text-note"
               }`}
             >

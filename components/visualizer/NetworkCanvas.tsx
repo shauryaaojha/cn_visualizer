@@ -12,9 +12,26 @@
 
 import { AnimatePresence, motion } from "framer-motion";
 import { FitStage } from "@/components/visualizer/FitStage";
+import { factSelection } from "@/components/visualizer/lesson/FactBody";
+import { linkFact, nodeFact } from "@/engines/netFacts";
+import { useLessonUi, type Selection } from "@/lib/lessonUiStore";
 import { useNetStore } from "@/lib/netStore";
 import { PALETTE } from "@/lib/palette";
-import type { CellState, LinkState, NetPanel, Packet } from "@/types/visualization";
+import type { CellState, LinkState, NetLink, NetNode, NetPanel, Packet } from "@/types/visualization";
+
+/** Something on a network canvas the student clicked. */
+export type NetPick = { type: "node"; node: NetNode; panel: NetPanel } | { type: "link"; link: NetLink; panel: NetPanel };
+
+/** The default Inspector card for a clicked node or link. */
+export function netSelection(pick: NetPick): Selection {
+  if (pick.type === "node") {
+    const f = nodeFact(pick.node, pick.panel);
+    return factSelection(`${pick.panel.id}-n-${pick.node.id}`, f.kind, f.title, PALETTE.note, f.spec);
+  }
+  const f = linkFact(pick.link, pick.panel);
+  const color = pick.link.state === "down" ? PALETTE.fail : PALETTE.data;
+  return factSelection(`${pick.panel.id}-l-${pick.link.id}`, f.kind, f.title, color, f.spec);
+}
 
 const NODE_STYLE: Record<CellState, string> = {
   idle: "border-outline bg-surface-container/90 text-on-surface",
@@ -48,7 +65,17 @@ const SPRING = { type: "spring", stiffness: 190, damping: 24 } as const;
 
 export function NetworkCanvas() {
   const step = useNetStore((s) => s.currentStep());
+  const program = useNetStore((s) => s.program);
+  const seek = useNetStore((s) => s.seek);
   const panels = step?.panels ?? [];
+  // Clicking a link also jumps to the first frame a packet crosses it.
+  const onPick = (pick: NetPick) => {
+    if (pick.type !== "link" || !program) return;
+    const i = program.steps.findIndex((st) =>
+      st.panels.some((p) => p.id === pick.panel.id && p.packets.some((pk) => pk.linkId === pick.link.id)),
+    );
+    if (i >= 0) seek(i);
+  };
   const multi = panels.length > 1;
 
   const W = multi ? 268 : 560;
@@ -63,20 +90,20 @@ export function NetworkCanvas() {
           style={multi ? undefined : { width: W }}
         >
           {panels.map((p) => (
-            <NetGraphPanel key={p.id} panel={p} w={W} h={H} r={R} compact={multi} />
+            <NetGraphPanel key={p.id} panel={p} w={W} h={H} r={R} compact={multi} onPick={onPick} />
           ))}
         </div>
 
         {step?.strip && (
           <div className="flex items-center gap-2 self-center">
-            <span className="shrink-0 font-label-caps text-[9px] uppercase tracking-wider text-on-surface-variant/60">
+            <span className="shrink-0 font-label-caps text-[12px] uppercase tracking-wider text-on-surface-variant/60">
               {step.strip.label}
             </span>
             <div className="flex max-w-[560px] flex-wrap gap-1">
               {step.strip.chips.map((c, i) => (
                 <span
                   key={i}
-                  className="flex h-6 items-center justify-center border border-outline-variant/50 px-1.5 font-mono text-[11px] text-on-surface-variant/70"
+                  className="flex h-6 items-center justify-center border border-outline-variant/50 px-1.5 font-mono text-[12px] text-on-surface-variant/80"
                 >
                   {c.text}
                 </span>
@@ -118,6 +145,8 @@ export function NetGraphPanel({
   r,
   compact,
   protocolPackets,
+  inspect = netSelection,
+  onPick,
 }: {
   panel: NetPanel;
   w: number;
@@ -126,7 +155,17 @@ export function NetGraphPanel({
   compact: boolean;
   /** RoutingCanvas opts in so protocol packets use their reserved violet. */
   protocolPackets?: boolean;
+  /** Builds the Inspector card for a click — canvases can supply richer ones. */
+  inspect?: (pick: NetPick) => Selection;
+  /** Side effect of a click, e.g. seeking to where that thing matters. */
+  onPick?: (pick: NetPick) => void;
 }) {
+  const toggleSelect = useLessonUi((s) => s.toggleSelect);
+  const selected = useLessonUi((s) => s.selection?.key);
+  const pick = (p: NetPick) => {
+    toggleSelect(inspect(p));
+    onPick?.(p);
+  };
   const pad = r + 8;
   const px = (x: number) => pad + (x / 100) * (w - pad * 2);
   const py = (y: number) => pad + (y / 100) * (h - pad * 2);
@@ -147,7 +186,7 @@ export function NetGraphPanel({
           {panel.label}
         </span>
         {panel.sub && (
-          <span className="truncate font-body-sm text-[10.5px] text-on-surface-variant/70">{panel.sub}</span>
+          <span className="truncate font-body-sm text-[12px] text-on-surface-variant/70">{panel.sub}</span>
         )}
       </div>
 
@@ -170,8 +209,22 @@ export function NetGraphPanel({
             const y2 = b.y - (dy / len) * rt;
             const mx = (x1 + x2) / 2;
             const my = (y1 + y2) / 2;
+            const isSel = selected === `${panel.id}-l-${l.id}`;
             return (
-              <g key={l.id}>
+              <g
+                key={l.id}
+                role="button"
+                tabIndex={0}
+                aria-label={`Link ${l.from} to ${l.to}`}
+                className="cursor-pointer outline-none"
+                onClick={() => pick({ type: "link", link: l, panel })}
+                onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && pick({ type: "link", link: l, panel })}
+              >
+                {/* A fat invisible stroke, so a 2px chalk line is easy to hit. */}
+                <line x1={x1} y1={y1} x2={x2} y2={y2} stroke="transparent" strokeWidth={14} />
+                {isSel && (
+                  <line x1={x1} y1={y1} x2={x2} y2={y2} stroke={PALETTE.note} strokeWidth={8} opacity={0.35} strokeLinecap="round" />
+                )}
                 <motion.line
                   initial={false}
                   animate={{ x1, y1, x2, y2, stroke: st.color, opacity: st.opacity }}
@@ -211,6 +264,7 @@ export function NetGraphPanel({
             );
           }
           const infra = n.kind === "switch" || n.kind === "router" || n.kind === "hub";
+          const isSel = selected === `${panel.id}-n-${n.id}`;
           return (
             <motion.div
               key={n.id}
@@ -220,23 +274,26 @@ export function NetGraphPanel({
               className="absolute flex flex-col items-center"
               style={{ width: r * 2 }}
             >
-              <div
-                className={`relative flex items-center justify-center border-2 font-mono font-bold backdrop-blur-sm transition-all duration-300 ${
+              <button
+                type="button"
+                aria-label={`${n.kind} ${n.label}`}
+                onClick={() => pick({ type: "node", node: n, panel })}
+                className={`relative flex cursor-pointer items-center justify-center border-2 font-mono font-bold backdrop-blur-sm transition-all duration-300 hover:brightness-125 ${
                   infra ? "rounded-md" : "rounded-full"
-                } ${NODE_STYLE[n.state]}`}
+                } ${NODE_STYLE[n.state]} ${isSel ? "outline outline-2 outline-offset-4 outline-note" : ""}`}
                 style={{
                   width: r * 2,
                   height: r * 2,
-                  fontSize: compact ? 9 : 13,
+                  fontSize: compact ? 12 : 13,
                 }}
               >
                 {n.ring && (
                   <span className="pointer-events-none absolute -inset-[4px] rounded-full border border-dashed border-primary/60" />
                 )}
                 {n.label}
-              </div>
+              </button>
               {n.badge && (
-                <span className="mt-0.5 whitespace-nowrap rounded bg-surface-container/80 px-1 font-mono text-[9px] text-amber">
+                <span className="mt-0.5 whitespace-nowrap rounded bg-surface-container/80 px-1 font-mono text-[12px] text-amber">
                   {n.badge}
                 </span>
               )}
@@ -253,19 +310,21 @@ export function NetGraphPanel({
           if (!a || !b) return null;
           const x = a.x + (b.x - a.x) * pk.t;
           const y = a.y + (b.y - a.y) * pk.t;
-          const pw = compact ? 22 : 32;
-          const ph = compact ? 13 : 18;
+          const pw = compact ? 36 : 44;
+          const ph = compact ? 17 : 20;
           return (
             <motion.div
               key={pk.id}
               initial={false}
-              animate={{ left: x - pw / 2, top: y - ph / 2 }}
+              animate={{ left: x, top: y }}
               transition={{ type: "tween", duration: 0.55, ease: "easeInOut" }}
-              className={`absolute z-10 flex items-center justify-center rounded-sm border font-mono font-bold ${PACKET_STYLE[pk.state]}`}
+              className={`pointer-events-none absolute z-10 flex items-center justify-center whitespace-nowrap rounded-sm border px-1 font-mono font-bold ${PACKET_STYLE[pk.state]}`}
               style={{
-                width: pw,
+                x: "-50%",
+                y: "-50%",
+                minWidth: pw,
                 height: ph,
-                fontSize: compact ? 8 : 10,
+                fontSize: 12,
                 ...(protocolPackets && pk.kind === "control"
                   ? { borderColor: PALETTE.protocol, backgroundColor: PALETTE.protocol, color: PALETTE.board }
                   : {}),
@@ -286,7 +345,7 @@ export function NetGraphPanel({
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0 }}
-              className={`rounded-full border-[1.5px] border-dashed px-2 py-0.5 font-hand text-[11.5px] font-bold ${
+              className={`rounded-full border-[1.5px] border-dashed px-2 py-0.5 font-hand text-[12px] font-bold ${
                 panel.verdict.tone === "error"
                   ? "border-coral/70 bg-coral/10 text-coral"
                   : panel.verdict.tone === "ok"

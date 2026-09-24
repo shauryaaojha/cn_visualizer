@@ -10,6 +10,7 @@
     "test": "node --experimental-strip-types tests/engines.test.mts"
   },
   "dependencies": {
+    "@phosphor-icons/react": "^2.1.10",
     "framer-motion": "^12.36.0",
     "next": "^16.2.9",
     "react": "^19.2.7",

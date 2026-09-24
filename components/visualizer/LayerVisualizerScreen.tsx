@@ -27,6 +27,7 @@ export function LayerVisualizerScreen({ path, title, blurb, operation }: Props) 
       sidebar={<LayerSidebar />}
       canvas={<LayerCanvas />}
       use={useLayerStore}
+      hint="Click any layer or header on the stage to inspect it."
     />
   );
 }

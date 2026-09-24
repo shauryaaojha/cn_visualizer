@@ -61,7 +61,7 @@ export function TopicHub({
           )}
 
           <header className="mb-xl flex items-start gap-md">
-            <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl border-[1.5px] border-dashed border-primary/50 bg-primary/10 text-primary">
+            <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl border border-primary/50 bg-primary/10 text-primary">
               <Icon name={icon} className="text-[28px]" />
             </span>
             <div>
@@ -88,13 +88,13 @@ export function TopicHub({
               </p>
               <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
                 <p className="font-body-sm text-body-sm leading-relaxed text-on-surface-variant">
-                  <span className="mr-2 rounded-sm border-[1.5px] border-dashed border-coral/60 bg-coral/10 px-1.5 py-px font-label-caps text-[9px] tracking-wider text-coral">
+                  <span className="mr-2 rounded-sm border border-coral/60 bg-coral/10 px-1.5 py-px font-label-caps text-[12px] tracking-wider text-coral">
                     THE PROBLEM
                   </span>
                   {note.problem}
                 </p>
                 <p className="font-body-sm text-body-sm leading-relaxed text-on-surface-variant">
-                  <span className="mr-2 rounded-sm border-[1.5px] border-dashed border-mint/60 bg-mint/10 px-1.5 py-px font-label-caps text-[9px] tracking-wider text-mint">
+                  <span className="mr-2 rounded-sm border border-mint/60 bg-mint/10 px-1.5 py-px font-label-caps text-[12px] tracking-wider text-mint">
                     THE IDEA
                   </span>
                   {note.idea}
@@ -120,7 +120,7 @@ export function TopicHub({
 
           {groups?.map((g) => (
             <section key={g.title} className="mb-xl last:mb-0">
-              <div className="mb-md flex items-baseline gap-3 border-b-[1.5px] border-dashed border-outline-variant/60 pb-2">
+              <div className="mb-md flex items-baseline gap-3 border-b border-outline-variant/60 pb-2">
                 {g.icon && <Icon name={g.icon} className="text-[18px] text-primary/80" />}
                 {g.href ? (
                   <Link
@@ -138,7 +138,7 @@ export function TopicHub({
                   </p>
                 )}
                 {g.ready && (
-                  <span className="shrink-0 font-mono text-[10px] text-on-surface-variant/55">{g.ready}</span>
+                  <span className="shrink-0 font-mono text-[12px] text-on-surface-variant/55">{g.ready}</span>
                 )}
               </div>
               <div className="grid grid-cols-1 gap-md sm:grid-cols-2 lg:grid-cols-3">

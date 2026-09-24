@@ -1,20 +1,259 @@
-// Thin wrapper around Google's Material Symbols Outlined font.
+// Icons — Phosphor, duotone.
+//
+// This used to render Material Symbols from a hand-cut font subset. Any icon
+// name missing from the subset silently rendered as its own text
+// ("ARROW_OUTWARD"), which happened three times. Phosphor icons are React
+// SVG components, tree-shaken into the bundle: offline, crisp at any size,
+// and a missing name fails loudly in development instead of printing words.
+//
+// Duotone = an outline plus a soft 20% fill in the same colour, which reads
+// as "drawn on the board" without adding colours. The `name` API is unchanged
+// (Material names), so no call site had to move.
+//
 // Usage: <Icon name="play_arrow" className="text-[18px]" filled />
+
+import {
+  ArrowRight,
+  ArrowsClockwise,
+  ArrowsHorizontal,
+  ArrowsIn,
+  ArrowsLeftRight,
+  ArrowsOut,
+  ArrowsOutCardinal,
+  ArrowsSplit,
+  ArrowsVertical,
+  ArrowCounterClockwise,
+  ArrowUUpRight,
+  Broadcast,
+  Buildings,
+  CaretLeft,
+  CaretRight,
+  CellTower,
+  ChalkboardTeacher,
+  ChartLine,
+  Circle,
+  CircleDashed,
+  ClosedCaptioning,
+  Cpu,
+  Crosshair,
+  Door,
+  Drop,
+  Envelope,
+  Ear,
+  Equalizer,
+  FastForward,
+  FileText,
+  Flag,
+  FlowArrow,
+  Folders,
+  FunnelSimple,
+  Function as FunctionIcon,
+  GitBranch,
+  GitMerge,
+  Globe,
+  GlobeHemisphereWest,
+  GraduationCap,
+  GridFour,
+  Handshake,
+  Hash,
+  HardDrives,
+  House,
+  HouseLine,
+  Info,
+  Intersect,
+  Lightning,
+  LinkBreak,
+  List,
+  ListNumbers,
+  MagnifyingGlass,
+  MapTrifold,
+  Minus,
+  NumberCircleOne,
+  NumberCircleTwo,
+  Package,
+  Path,
+  Pause,
+  PauseCircle,
+  PencilSimpleLine,
+  Play,
+  PlayCircle,
+  Plugs,
+  PlugsConnected,
+  Question,
+  Rectangle,
+  Rows,
+  Scissors,
+  SealCheck,
+  ShareNetwork,
+  SignIn,
+  SkipBack,
+  SkipForward,
+  SlidersHorizontal,
+  Sparkle,
+  SpeakerHigh,
+  SpeedometerIcon,
+  SquaresFour,
+  Stack,
+  Star,
+  Swap,
+  Tag,
+  Terminal,
+  TreeStructure,
+  UploadSimple,
+  UsersThree,
+  VideoCamera,
+  Warning,
+  Watch,
+  Waves,
+  WifiHigh,
+  X,
+} from "@phosphor-icons/react/dist/ssr";
+import type { Icon as PhosphorIcon } from "@phosphor-icons/react";
+
+/** Material Symbols name → Phosphor component. */
+const MAP: Record<string, PhosphorIcon> = {
+  // transport & controls
+  play_arrow: Play,
+  play_circle: PlayCircle,
+  pause: Pause,
+  pause_circle: PauseCircle,
+  skip_next: SkipForward,
+  skip_previous: SkipBack,
+  fast_forward: FastForward,
+  fast_rewind: ArrowCounterClockwise,
+  replay: ArrowCounterClockwise,
+  refresh: ArrowsClockwise,
+  sync: ArrowsClockwise,
+  speed: SpeedometerIcon,
+  tune: SlidersHorizontal,
+  close: X,
+  chevron_left: CaretLeft,
+  chevron_right: CaretRight,
+  east: ArrowRight,
+  trending_flat: ArrowRight,
+  help: Question,
+  videocam: VideoCamera,
+  subtitles: ClosedCaptioning,
+  subtitles_off: ClosedCaptioning,
+  zoom_out_map: ArrowsOut,
+  close_fullscreen: ArrowsIn,
+  expand: ArrowsOutCardinal,
+  upload: UploadSimple,
+  // lesson chrome
+  receipt_long: FileText,
+  list: List,
+  draw: PencilSimpleLine,
+  functions: FunctionIcon,
+  record_voice_over: ChalkboardTeacher,
+  school: GraduationCap,
+  menu_book: GraduationCap,
+  explore: MagnifyingGlass,
+  travel_explore: MagnifyingGlass,
+  auto_awesome: Sparkle,
+  flare: Sparkle,
+  verified: SealCheck,
+  warning: Warning,
+  rule: ListNumbers,
+  pending: CircleDashed,
+  flag: Flag,
+  star: Star,
+  pin: Crosshair,
+  adjust: Crosshair,
+  home: House,
+  home_work: HouseLine,
+  timeline: ChartLine,
+  // networks
+  lan: TreeStructure,
+  account_tree: TreeStructure,
+  device_hub: ShareNetwork,
+  hub: ShareNetwork,
+  share: ShareNetwork,
+  router: HardDrives,
+  dns: HardDrives,
+  developer_board: Cpu,
+  settings_ethernet: Plugs,
+  settings_input_component: PlugsConnected,
+  settings_input_antenna: CellTower,
+  settings_remote: Broadcast,
+  cell_tower: CellTower,
+  podcasts: Broadcast,
+  satellite_alt: Broadcast,
+  wifi: WifiHigh,
+  cable: Plugs,
+  link_off: LinkBreak,
+  public: Globe,
+  language: GlobeHemisphereWest,
+  location_city: Buildings,
+  map: MapTrifold,
+  watch: Watch,
+  groups: UsersThree,
+  handshake: Handshake,
+  mail: Envelope,
+  folder_shared: Folders,
+  inventory_2: Package,
+  door_front: Door,
+  terminal: Terminal,
+  // topology & routing shapes
+  horizontal_rule: Minus,
+  radio_button_unchecked: Circle,
+  grid_view: GridFour,
+  apps: SquaresFour,
+  workspaces: SquaresFour,
+  dashboard_customize: SquaresFour,
+  view_agenda: Rows,
+  table_rows: Rows,
+  view_column: Rectangle,
+  view_carousel: Rectangle,
+  layers: Stack,
+  category: Intersect,
+  compare: ArrowsLeftRight,
+  compare_arrows: ArrowsLeftRight,
+  swap_horiz: ArrowsHorizontal,
+  swap_vert: ArrowsVertical,
+  swap_calls: Swap,
+  sync_alt: Swap,
+  alt_route: ArrowsSplit,
+  call_split: ArrowsSplit,
+  merge: GitMerge,
+  route: Path,
+  conversion_path: FlowArrow,
+  edit_road: Path,
+  call_missed_outgoing: ArrowUUpRight,
+  linear_scale: GitBranch,
+  // signals & media
+  bolt: Lightning,
+  graphic_eq: Equalizer,
+  waves: Waves,
+  water_drop: Drop,
+  hearing: Ear,
+  healing: SpeakerHigh,
+  // addressing & numbers
+  numbers: Hash,
+  tag: Tag,
+  toll: Hash,
+  calculate: FunctionIcon,
+  content_cut: Scissors,
+  filter_alt: FunnelSimple,
+  looks_one: NumberCircleOne,
+  counter_1: NumberCircleOne,
+  counter_2: NumberCircleTwo,
+  login: SignIn,
+};
 
 interface IconProps {
   name: string;
   className?: string;
+  /** Solid instead of duotone — for primary buttons like Play. */
   filled?: boolean;
 }
 
 export function Icon({ name, className = "", filled = false }: IconProps) {
+  const Cmp = MAP[name];
+  if (!Cmp) {
+    if (process.env.NODE_ENV !== "production") console.warn(`Icon: no mapping for "${name}"`);
+    return <Info aria-hidden className={`inline-block shrink-0 ${className}`} size="1em" weight="duotone" />;
+  }
   return (
-    <span
-      className={`material-symbols-outlined ${className}`}
-      style={filled ? { fontVariationSettings: "'FILL' 1" } : undefined}
-      aria-hidden
-    >
-      {name}
-    </span>
+    <Cmp aria-hidden className={`inline-block shrink-0 ${className}`} size="1em" weight={filled ? "fill" : "duotone"} />
   );
 }

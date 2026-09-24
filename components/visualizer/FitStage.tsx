@@ -4,13 +4,20 @@
 // the natural (unscaled) size of its content, then CSS-scales the content down
 // so the WHOLE visualization is always on screen — add a fifth panel and the
 // animation shrinks to fit instead of overflowing into scrollbars. Never scales
-// above 1.
+// above STUDY_MAX_SCALE (RECORD_MAX_SCALE while recording).
 
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { useRecordStore } from "@/lib/recordStore";
 
 /** How far the artwork may grow once record mode strips the chrome away. */
 const RECORD_MAX_SCALE = 2;
+/**
+ * How far it may grow on a normal screen. This used to be 1, which left a
+ * 1440px monitor showing a postage-stamp diagram inside a sea of empty board
+ * while the sidebar and chips competed for attention. The animation is the
+ * lesson — it should be the biggest thing on the page.
+ */
+const STUDY_MAX_SCALE = 1.6;
 
 interface FitStageProps {
   children: ReactNode;
@@ -33,7 +40,7 @@ export function FitStage({ children, padding = 20, maxScale, className }: FitSta
   const innerRef = useRef<HTMLDivElement | null>(null);
   const [scale, setScale] = useState(1);
   // Canvases never pass this — they just inherit the right behaviour.
-  const cap = maxScale ?? (recording ? RECORD_MAX_SCALE : 1);
+  const cap = maxScale ?? (recording ? RECORD_MAX_SCALE : STUDY_MAX_SCALE);
 
   useEffect(() => {
     const measure = () => {

@@ -3,6 +3,12 @@ import { runLayerOperation, LAYER_DEFAULTS } from "../engines/layerEngine.ts";
 import { runSignalOperation, SIGNAL_DEFAULTS } from "../engines/signalEngine.ts";
 import { ROUTING_DEFAULTS, RIP_INFINITY, runRoutingOperation } from "../engines/routingEngine.ts";
 import { runAddressOperation } from "../engines/addressEngine.ts";
+import { runMediaOperation, MEDIA_DEFAULTS } from "../engines/mediaEngine.ts";
+import { runLadderOperation, LADDER_DEFAULTS, LADDER_OP_DEFAULTS } from "../engines/ladderEngine.ts";
+import { runBitOperation, BIT_DEFAULTS, BIT_OP_DEFAULTS, crcRemainder } from "../engines/bitEngine.ts";
+import { runFrameOperation, FRAME_DEFAULTS, FRAME_OP_DEFAULTS, stuff } from "../engines/frameEngine.ts";
+import { runMacOperation, MAC_DEFAULTS, MAC_OP_DEFAULTS } from "../engines/macEngine.ts";
+import { runJourneyOperation, JOURNEY_DEFAULTS } from "../engines/journeyEngine.ts";
 
 let fails = 0;
 const ok = (cond: boolean, msg: string) => {
@@ -209,6 +215,49 @@ const hostFlipP = runAddressOperation({
 });
 const hostFlipNet = hostFlipP.stats.find((s) => s.label === "Network")?.value;
 ok(hostFlipNet === "192.168.1.0", `Host bit flip (bit 31) preserves network address ${hostFlipNet}`);
+
+console.log("\n-- Unit 1 standard: every lesson has labels and at least one Predict question --");
+const standard = (name: string, steps: { label?: string; predict?: { options: string[]; answer: number } }[]) => {
+  ok(steps.every((s) => !!s.label), `${name}: every frame labelled`);
+  const qs = steps.filter((s) => s.predict);
+  ok(qs.length > 0 || steps.length < 2, `${name}: ${qs.length} Predict question(s)`);
+  ok(qs.every((s) => s.predict!.answer >= 0 && s.predict!.answer < s.predict!.options.length && new Set(s.predict!.options).size === s.predict!.options.length), `${name}: answers valid, options distinct`);
+};
+for (const op of ["topoBus", "topoRing", "topoFailure", "introNetwork", "switchPacket"] as const) {
+  const cut = suggestedCut(op as never, 6, "A", "E");
+  standard(`net ${op}`, runNetOperation({ op, from: "A", to: "E", hosts: 6, faults: cut ? [{ kind: "linkDown", id: cut }] : [] }).steps);
+}
+standard("routing forwarding", runRoutingOperation({ ...ROUTING_DEFAULTS, op: "ipForwarding" }).steps);
+standard("routing DV + cut", runRoutingOperation({ ...ROUTING_DEFAULTS, op: "distanceVector", faults: [{ kind: "linkDown", id: "r-B-C" }] }).steps);
+for (const op of ["bandwidthVsLatency", "transmissionDelay", "propagationDelay", "queuingProcessing"] as const) standard(`signal ${op}`, runSignalOperation(op, SIGNAL_DEFAULTS).steps);
+for (const op of ["signalBasics", "guidedTwistedPair", "guidedCoaxial", "guidedFiber", "unguidedRadio", "unguidedMicrowave", "unguidedInfrared", "mediaComparison"] as const)
+  standard(`media ${op}`, runMediaOperation({ ...MEDIA_DEFAULTS, op }).steps);
+standard("address ipv4", runAddressOperation({ op: "ipv4Addressing", ip: "192.168.1.25", prefix: 26, faults: [] }).steps);
+for (const op of ["stopAndWait", "arq", "slidingWindow", "handshake", "tcpReliability", "tcpFlowControl", "udp", "http", "ftp", "email", "telnet", "dns", "packetJourney"] as const)
+  standard(`ladder ${op}`, runLadderOperation({ ...LADDER_DEFAULTS, ...(LADDER_OP_DEFAULTS[op] ?? {}), op }).steps);
+for (const op of ["parity", "checksum", "crc", "hamming"] as const) standard(`bit ${op}`, runBitOperation({ ...BIT_DEFAULTS, ...BIT_OP_DEFAULTS[op], op }).steps);
+for (const op of ["ethernet", "hdlc", "ppp", "udp", "tcp", "ports"] as const) standard(`frame ${op}`, runFrameOperation({ ...FRAME_DEFAULTS, ...FRAME_OP_DEFAULTS[op], op }).steps);
+for (const op of ["macProblem", "aloha", "csmaCd", "csmaCa", "tokenRing"] as const) standard(`mac ${op}`, runMacOperation({ ...MAC_DEFAULTS, ...MAC_OP_DEFAULTS[op], op }).steps);
+standard("journey", runJourneyOperation(JOURNEY_DEFAULTS).steps);
+
+console.log("\n-- Units 4 & 5: real maths --");
+ok(crcRemainder("1101011011", "10011") === "1110", "CRC of 1101011011 / 10011 is 1110 (textbook)");
+ok(stuff("0111111011111100").out === "011111010111110100", "HDLC stuffs a 0 after every five 1s");
+const ham = runBitOperation({ ...BIT_DEFAULTS, op: "hamming", data: "1011", flip: 6 });
+ok(ham.stats.find((s) => s.label === "Syndrome")!.value === "6", "Hamming syndrome names the flipped position (6)");
+const two = runBitOperation({ ...BIT_DEFAULTS, op: "parity", flips: 2 });
+ok(two.stats.find((s) => s.label === "Verdict")!.value === "missed", "parity misses a double flip");
+const gbn = runLadderOperation({ ...LADDER_DEFAULTS, op: "slidingWindow", frames: 7, window: 3, lose: 3 });
+ok(gbn.stats.find((s) => s.label === "Resent")!.value === "3", "Go-Back-N N=3 resends the whole window after one loss");
+const sw = runLadderOperation({ ...LADDER_DEFAULTS, op: "stopAndWait", frames: 3 });
+ok(sw.stats.find((s) => s.label === "Transmissions")!.value === "3", "stop-and-wait with no loss sends each frame once");
+const hs = JSON.stringify(runLadderOperation({ ...LADDER_DEFAULTS, op: "handshake", isn: 4242 }).steps.at(-1));
+ok(hs.includes("4243") && hs.includes("4343"), "handshake acks follow the ISN (x+1, x+101)");
+const eth = runFrameOperation({ ...FRAME_DEFAULTS, op: "ethernet", payload: 1 });
+ok(eth.stats.find((s) => s.label === "Frame")!.value === "64 B", "a 1-byte payload still makes a 64-byte Ethernet frame");
+const det = runJourneyOperation({ ...JOURNEY_DEFAULTS, cut: "r1r2" });
+ok(det.stats.find((s) => s.label === "Routers crossed")!.value === "3", "cutting R1–R2 detours through R3 (3 routers)");
+ok(runJourneyOperation({ ...JOURNEY_DEFAULTS, ttl: 1 }).stats[0].value === "TTL expired", "TTL 1 dies at the first router");
 
 console.log(fails === 0 ? "\nALL ENGINE CHECKS PASSED\n" : `\n${fails} CHECK(S) FAILED\n`);
 process.exit(fails === 0 ? 0 : 1);
