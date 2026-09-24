@@ -24,38 +24,37 @@ npm run dev        # http://localhost:3000
 | Command | Does |
 | --- | --- |
 | `npm run dev` | Development server with hot reload |
-| `npm run build` | Static export into `./out` |
-| `npx serve out` | Serve the built static site locally |
-| `npm test` | Engine correctness checks (paths, cuts, delay maths) |
+| `npm run build` | Production build (lessons prerendered, account pages on the server) |
+| `npm start` | Serve the production build locally |
+| `npm test` | Engine correctness checks and sign-in rules |
 | `npm run lint` | ESLint |
 
-The app makes **no network requests at runtime**. Kalam and JetBrains Mono are
+Lessons make **no network requests at runtime**. Kalam and JetBrains Mono are
 vendored by `next/font` at build time, and icons are Phosphor SVG components
-bundled with the app. It works with wifi off.
+bundled with the app. The one exception is the navbar asking whether you are
+signed in; lessons still work with wifi off.
+
+Accounts need env vars. Copy `.env.example` to `.env.local` and fill it in. Without
+them, the lessons run normally and `/login` says sign-in isn't configured.
 
 ---
 
 ## Deploy
 
-`npm run build` writes a fully static site to `./out`. There is no server
-component, so any static host will do.
+Lesson pages are prerendered at build time. Only sign-in (`/api/auth`),
+`/login`, `/onboarding` and `/dashboard` run on the server, because they need
+the session and MongoDB. So the site needs a host that runs Next.js, not a bare
+static file host.
 
-**Vercel** — `npx vercel deploy --prod` from the repo root, or connect the repo
-in the dashboard and let it build. It reads `next.config.mjs` and does the
-right thing.
+**Vercel:** connect the repo and let it build. Set the variables from
+`.env.example` under Project → Settings → Environment Variables:
+`MONGODB_URI`, `AUTH_SECRET`, `AUTH_GOOGLE_ID`, `AUTH_GOOGLE_SECRET`,
+`FACULTY_EMAILS`, and optionally `AUTH_GITHUB_ID` and `AUTH_GITHUB_SECRET`.
+The Output Directory setting must stay at its default (not `out`).
 
-**Netlify / Cloudflare Pages** — build command `npm run build`, publish
-directory `out`.
-
-**GitHub Pages** — push `out/` to a `gh-pages` branch. If the site is served
-from a subpath (`user.github.io/cn_visualizer`), add `basePath` to
-`next.config.mjs` first:
-
-```js
-const nextConfig = { output: "export", basePath: "/cn_visualizer" };
-```
-
-**Any web server** — copy `out/` into the document root.
+**Accounts:** see [docs/AUTH_PLAN.md](docs/AUTH_PLAN.md). SRM students sign in
+with Google, locked to `srmist.edu.in`. Everyone else uses Google or GitHub.
+No passwords are stored.
 
 ---
 

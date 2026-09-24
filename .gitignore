@@ -35,3 +35,6 @@ tsconfig.tsbuildinfo
 
 # static export
 /out/
+.vercel
+.env*
+!.env.example

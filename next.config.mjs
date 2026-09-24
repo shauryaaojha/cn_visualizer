@@ -1,17 +1,15 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  // Every route is prerendered and there is no server code, so the app ships as
-  // plain files. `npm run build` writes ./out — drop that on any static host
-  // (Vercel, Netlify, Cloudflare Pages, GitHub Pages, a college web server).
-  output: "export",
+  // Lesson pages are still prerendered at build time and served as static
+  // files. Only sign-in (/api/auth), /login, /onboarding and /dashboard run on
+  // the server, because they need the session and MongoDB. This used to be
+  // `output: "export"`; that mode has no server, so accounts cannot work in it.
+  //
+  // trailingSlash went with it: Vercel resolves extensionless URLs itself, and
+  // a slash redirect in front of /api/auth/callback/* only adds a hop to every
+  // OAuth round trip.
 
-  // Emit topics/foo/index.html rather than topics/foo.html. Vercel and Netlify
-  // resolve extensionless URLs on their own, but a plain Apache/nginx/python
-  // server does not — this makes the export work on all of them.
-  trailingSlash: true,
-
-  // next/image would need a server to optimise; nothing here uses it, but this
-  // keeps the export from failing if a future page does.
+  // next/image would need the optimiser; nothing here uses it.
   images: { unoptimized: true },
 };
 

@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { SyllabusMenu } from "@/components/layout/SyllabusMenu";
+import { UserMenu } from "@/components/layout/UserMenu";
 import { SECTIONS } from "@/data/curriculum";
 
 export function Navbar() {
@@ -28,7 +29,8 @@ export function Navbar() {
         ))}
       </div>
 
-      <div className="flex items-center gap-4">
+      <div className="flex items-center gap-3">
+        <UserMenu />
         <SyllabusMenu />
       </div>
     </nav>

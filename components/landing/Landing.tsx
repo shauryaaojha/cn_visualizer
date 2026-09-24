@@ -170,7 +170,16 @@ export function Landing() {
         />
 
         <footer className="mx-auto flex w-full max-w-6xl flex-col gap-2 border-t border-outline-variant px-margin py-10 font-sans text-[14px] text-on-surface-variant md:flex-row md:justify-between">
-          <span>CN_Visualizer · 21CSC302J Computer Networks</span>
+          <span>
+            CN_Visualizer · 21CSC302J Computer Networks ·{" "}
+            <Link href="/privacy" className="underline hover:text-primary">
+              Privacy
+            </Link>{" "}
+            ·{" "}
+            <Link href="/terms" className="underline hover:text-primary">
+              Terms
+            </Link>
+          </span>
           <span>
             Recording a lesson? Press <kbd className="rounded bg-surface-container-high px-1.5 font-mono">P</kbd> on
             any visualizer. Works offline.

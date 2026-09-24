@@ -86,6 +86,11 @@ import {
   SealCheck,
   ShareNetwork,
   SignIn,
+  SignOut,
+  UserCircle,
+  IdentificationCard,
+  GithubLogo,
+  GoogleLogo,
   SkipBack,
   SkipForward,
   SlidersHorizontal,
@@ -238,6 +243,11 @@ const MAP: Record<string, PhosphorIcon> = {
   counter_1: NumberCircleOne,
   counter_2: NumberCircleTwo,
   login: SignIn,
+  logout: SignOut,
+  account_circle: UserCircle,
+  badge: IdentificationCard,
+  github: GithubLogo,
+  google: GoogleLogo,
 };
 
 interface IconProps {
