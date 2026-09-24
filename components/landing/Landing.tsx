@@ -78,7 +78,7 @@ export function Landing() {
                 <li key={u.slug} className="border-b border-outline-variant">
                   <Link
                     href={`/topics/${u.slug}`}
-                    className="group grid grid-cols-[3rem_1fr_auto] items-center gap-x-4 gap-y-2 py-6 transition-colors duration-200 hover:bg-surface-container-low/60 md:grid-cols-[4rem_minmax(0,1.1fr)_minmax(0,1fr)_11rem_2rem] md:gap-x-6 md:px-3"
+                    className="group grid grid-cols-[2.5rem_minmax(0,1fr)_auto] items-center gap-x-4 gap-y-2 py-6 transition-colors duration-200 hover:bg-surface-container-low/60 md:grid-cols-[4rem_minmax(0,1.1fr)_minmax(0,1fr)_11rem_2rem] md:gap-x-6 md:px-3"
                   >
                     <span className="font-mono text-[15px] text-on-surface-variant">
                       {u.unit <= 5 ? `0${u.unit}` : "★"}

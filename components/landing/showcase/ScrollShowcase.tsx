@@ -61,9 +61,9 @@ export function ScrollShowcase({ scroller, eyebrow, title, blurb, steps, href, c
       style={reduce ? undefined : { height: `${n * 30 + 40}vh` }}
     >
       <div
-        className={`${reduce ? "" : "sticky top-0 h-[calc(100dvh-64px)]"} mx-auto grid w-full max-w-6xl items-center gap-8 px-margin py-12 md:grid-cols-[minmax(0,5fr)_minmax(0,6fr)]`}
+        className={`${reduce ? "" : "sticky top-0 h-[calc(100dvh-64px)]"} mx-auto grid w-full max-w-6xl grid-cols-1 items-center gap-4 px-margin py-6 md:gap-8 md:py-12 md:grid-cols-[minmax(0,5fr)_minmax(0,6fr)]`}
       >
-        <div className="order-2 md:order-1">
+        <div className="order-2 min-w-0 md:order-1">
           <p className="mb-2 font-label-caps text-label-caps uppercase text-primary">{eyebrow}</p>
           <h2 className="font-headline-lg text-headline-lg text-on-surface">{title}</h2>
           <p className="mt-2 max-w-md font-body-md text-body-md text-on-surface-variant">{blurb}</p>
@@ -99,8 +99,10 @@ export function ScrollShowcase({ scroller, eyebrow, title, blurb, steps, href, c
           </Link>
         </div>
 
-        <div aria-hidden className="order-1 flex items-center justify-center md:order-2">
-          <div className="origin-center scale-[0.72] md:scale-100">{visual(shown, reduce, scrollYProgress)}</div>
+        {/* On a phone the visual is shown at 60% inside a fixed-height box, so
+            its natural (unscaled) width never widens the page. */}
+        <div aria-hidden className="order-1 flex h-[290px] min-w-0 items-center justify-center overflow-hidden md:order-2 md:h-auto md:overflow-visible">
+          <div className="origin-center scale-[0.6] md:scale-100">{visual(shown, reduce, scrollYProgress)}</div>
         </div>
       </div>
     </section>

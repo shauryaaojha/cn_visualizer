@@ -69,10 +69,10 @@ export function OsiStack({ scroller }: { scroller: RefObject<HTMLElement | null>
   return (
     <section ref={section} className={reduce ? "" : "relative h-[180vh]"}>
       <div
-        className={`${reduce ? "" : "sticky top-0 h-[calc(100dvh-64px)]"} mx-auto grid w-full max-w-6xl items-center gap-8 px-margin py-12 md:grid-cols-[minmax(0,5fr)_minmax(0,6fr)]`}
+        className={`${reduce ? "" : "sticky top-0 h-[calc(100dvh-64px)]"} mx-auto grid w-full max-w-6xl grid-cols-1 items-center gap-4 px-margin py-6 md:gap-8 md:py-12 md:grid-cols-[minmax(0,5fr)_minmax(0,6fr)]`}
       >
         {/* the readable half */}
-        <div className="order-2 md:order-1">
+        <div className="order-2 min-w-0 md:order-1">
           <p className="mb-2 font-label-caps text-label-caps uppercase text-primary">Unit 1 · Layering</p>
           <h2 className="font-headline-lg text-headline-lg text-on-surface">Build the stack.</h2>
           <p className="mt-2 max-w-md font-body-md text-body-md text-on-surface-variant">
@@ -123,11 +123,11 @@ export function OsiStack({ scroller }: { scroller: RefObject<HTMLElement | null>
         {/* the 3D half */}
         <div
           aria-hidden
-          className="order-1 flex h-[300px] items-center justify-center [perspective:1600px] md:order-2 md:h-full"
+          className="order-1 flex h-[280px] min-w-0 items-center justify-center overflow-hidden [perspective:1600px] md:order-2 md:h-full md:overflow-visible"
         >
           {/* Scale and the isometric tilt live on separate elements: Tailwind's
               scale utilities write the whole transform and would erase it. */}
-          <div className="scale-[0.72] [transform-style:preserve-3d] md:scale-100">
+          <div className="scale-[0.62] [transform-style:preserve-3d] md:scale-100">
             <div
               className="relative h-[210px] w-[340px] [transform-style:preserve-3d]"
               style={{ transform: "rotateX(58deg) rotateZ(-42deg)" }}
