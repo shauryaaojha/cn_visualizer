@@ -31,7 +31,8 @@ async function validateAndSave(form: FormData): Promise<string | null> {
   const name = text(form, "name", 80);
   if (name.length < 2) return "Please enter your name.";
 
-  if (user.mode === "srm") {
+  // Register number and section describe a student. Faculty get the short form.
+  if (user.mode === "srm" && user.role !== "faculty") {
     const regNo = normalizeRegNo(text(form, "regNo", 30));
     if (!REG_NO_PATTERN.test(regNo)) return "Register number should look like RA2211003010123: RA followed by 13 digits.";
     const dept = text(form, "dept", 40);

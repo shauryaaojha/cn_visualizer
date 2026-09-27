@@ -6,6 +6,7 @@ import { AccountShell, Panel } from "@/components/account/AccountShell";
 import { Icon } from "@/components/ui/Icon";
 import { ProgressBoard } from "@/components/account/ProgressBoard";
 import { SyncOnView } from "@/components/account/SyncOnView";
+import { isFaculty } from "@/lib/faculty";
 import { getProgress } from "@/lib/progressStore";
 import { requireUser } from "@/lib/session";
 
@@ -74,6 +75,15 @@ export default async function DashboardPage() {
         </Panel>
 
         <Panel className="flex flex-col gap-sm">
+          {isFaculty(user) && (
+            <Link
+              href="/faculty"
+              className="flex items-center justify-center gap-2 rounded-lg border border-violet px-4 py-2.5 font-sans text-[15px] font-bold text-violet hover:bg-violet hover:text-on-primary"
+            >
+              <Icon name="groups" className="text-[18px]" />
+              Faculty view
+            </Link>
+          )}
           <Link
             href="/topics"
             className="flex items-center justify-center gap-2 rounded-lg border border-primary bg-primary px-4 py-2.5 font-sans text-[15px] font-bold text-on-primary hover:bg-primary-fixed"

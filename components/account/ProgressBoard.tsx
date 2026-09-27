@@ -39,7 +39,8 @@ function StateDot({ p }: { p?: LessonProgress }) {
   return <span className="mx-[5px] h-2 w-2 shrink-0 rounded-full bg-outline-variant" aria-hidden />;
 }
 
-export function ProgressBoard({ items }: { items: LessonProgress[] }) {
+/** `viewer` is who is looking: the student themself, or their faculty. It only changes the wording. */
+export function ProgressBoard({ items, viewer = "self" }: { items: LessonProgress[]; viewer?: "self" | "faculty" }) {
   const byLesson = new Map(items.map((i) => [i.lesson, i]));
   const units = SECTIONS.map((s) => ({ s, leaves: leavesOfSection(s.slug).filter((l) => l.status === "available") })).filter(
     (u) => u.leaves.length > 0,
@@ -72,12 +73,24 @@ export function ProgressBoard({ items }: { items: LessonProgress[] }) {
             {t.asked ? `${Math.round((t.right / t.asked) * 100)}%` : "—"}
           </p>
           <p className="font-body-sm text-[13px] text-on-surface-variant">
-            {t.asked ? `${t.right} right of ${t.asked} first ${t.asked === 1 ? "try" : "tries"}` : "Turn on Predict in any lesson"}
+            {t.asked
+              ? `${t.right} right of ${t.asked} first ${t.asked === 1 ? "try" : "tries"}`
+              : viewer === "faculty"
+                ? "No Predict answers yet"
+                : "Turn on Predict in any lesson"}
           </p>
         </Panel>
         <Panel>
           <p className="font-label-caps text-[12px] uppercase text-on-surface-variant">
-            {recent ? "Pick up where you left off" : done === all.length ? "All done" : "Start here"}
+            {viewer === "faculty"
+              ? recent
+                ? "Last worked on"
+                : "Next lesson"
+              : recent
+                ? "Pick up where you left off"
+                : done === all.length
+                  ? "All done"
+                  : "Start here"}
           </p>
           {next ? (
             <Link href={next.href} className="mt-1 flex items-center gap-1.5 font-sans text-[15px] font-bold text-primary hover:underline">

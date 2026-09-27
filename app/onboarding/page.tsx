@@ -12,7 +12,8 @@ export default async function OnboardingPage({
 }) {
   const user = await requireUser("/onboarding");
   const next = safeNext((await searchParams).next);
-  const srm = user.mode === "srm";
+  // Faculty skip the student fields, so the form treats them like a global user.
+  const srm = user.mode === "srm" && user.role !== "faculty";
 
   return (
     <AccountShell
