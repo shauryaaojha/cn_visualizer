@@ -1,6 +1,7 @@
 import { auth } from "@/auth";
 import { buildReport, parseSectionSlug, reportCsv, sectionLabel } from "@/lib/classReport";
 import { isFaculty, LESSON_COLUMNS, progressFor, studentsIn, teaches } from "@/lib/faculty";
+import { summaries } from "@/lib/quiz/store";
 import { getUser } from "@/lib/users";
 
 // GET /api/faculty/export?section=<slug> → the section's progress as CSV.
@@ -15,7 +16,9 @@ export async function GET(req: Request) {
   if (!s || !(await teaches(user._id.toHexString(), s))) return new Response("Not one of your sections", { status: 404 });
 
   const students = await studentsIn(s);
-  const report = buildReport(students, await progressFor(students.map((st) => st.id)), LESSON_COLUMNS);
+  const ids = students.map((st) => st.id);
+  const [progress, quizzes] = await Promise.all([progressFor(ids), summaries(ids)]);
+  const report = buildReport(students, progress, LESSON_COLUMNS, quizzes);
   const date = new Date().toISOString().slice(0, 10);
   const name = `${sectionLabel(s).replace(/[^A-Za-z0-9]+/g, "-")}-${date}.csv`;
   return new Response(reportCsv(report, LESSON_COLUMNS), {

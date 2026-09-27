@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { SyllabusMenu } from "@/components/layout/SyllabusMenu";
 import { UserMenu } from "@/components/layout/UserMenu";
+import { Icon } from "@/components/ui/Icon";
 import { SECTIONS } from "@/data/curriculum";
 
 export function Navbar() {
@@ -30,6 +31,15 @@ export function Navbar() {
       </div>
 
       <div className="flex items-center gap-3">
+        <Link
+          href="/practice"
+          title="Practice quizzes"
+          aria-label="Practice quizzes"
+          className="flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-md border border-outline-variant px-2.5 py-1.5 font-sans text-[14px] font-bold text-on-surface transition-colors hover:border-primary hover:text-primary"
+        >
+          <Icon name="functions" className="text-[18px]" />
+          <span className="hidden sm:inline lg:hidden xl:inline">Practice</span>
+        </Link>
         <UserMenu />
         <SyllabusMenu />
       </div>

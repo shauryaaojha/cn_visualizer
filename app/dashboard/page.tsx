@@ -5,6 +5,8 @@ import { signOut } from "@/auth";
 import { AccountShell, Panel } from "@/components/account/AccountShell";
 import { Icon } from "@/components/ui/Icon";
 import { ProgressBoard } from "@/components/account/ProgressBoard";
+import { QuizPanel } from "@/components/account/QuizPanel";
+import { summaries } from "@/lib/quiz/store";
 import { SyncOnView } from "@/components/account/SyncOnView";
 import { isFaculty } from "@/lib/faculty";
 import { getProgress } from "@/lib/progressStore";
@@ -26,7 +28,8 @@ export default async function DashboardPage() {
   const user = await requireUser("/dashboard");
   if (!user.profile) redirect("/onboarding?next=/dashboard");
   const p = user.profile;
-  const progress = await getProgress(user._id.toHexString());
+  const uid = user._id.toHexString();
+  const [progress, quizzes] = await Promise.all([getProgress(uid), summaries([uid])]);
 
   async function leave() {
     "use server";
@@ -43,6 +46,9 @@ export default async function DashboardPage() {
     >
       <SyncOnView />
       <ProgressBoard items={progress} />
+      <div className="mt-md">
+        <QuizPanel items={quizzes.get(uid) ?? []} />
+      </div>
 
       <div className="mt-md grid gap-md md:grid-cols-[1fr_16rem]">
         <Panel>

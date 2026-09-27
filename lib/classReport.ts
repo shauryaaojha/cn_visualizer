@@ -67,6 +67,14 @@ export interface LessonInfo {
   unit: string;
 }
 
+/** Best practice-quiz score per quiz, as saved for one student. */
+export interface QuizBest {
+  quiz: string;
+  attempts: number;
+  /** 0..1 */
+  best: number;
+}
+
 export interface StudentRow {
   student: StudentInfo;
   /** Per lesson, in `lessons` order: 1 = complete, 0..1 = share watched, null = not opened. */
@@ -75,6 +83,9 @@ export interface StudentRow {
   asked: number;
   right: number;
   lastActive: number | null;
+  quizzes: QuizBest[];
+  /** Mean of the best scores over the quizzes tried, 0..1, or null if none. */
+  quizAvg: number | null;
 }
 
 export interface MissedQuestion {
@@ -97,6 +108,7 @@ export function buildReport(
   students: StudentInfo[],
   progress: Map<string, LessonProgress[]>,
   lessons: LessonInfo[],
+  quizzes: Map<string, QuizBest[]> = new Map(),
 ): ClassReport {
   const questions = new Map<string, MissedQuestion>();
   const titles = new Map(lessons.map((l) => [l.href, l.title]));
@@ -120,6 +132,7 @@ export function buildReport(
       }
     }
     const t = tally(items);
+    const qs = quizzes.get(student.id) ?? [];
     return {
       student,
       cells,
@@ -127,6 +140,8 @@ export function buildReport(
       asked: t.asked,
       right: t.right,
       lastActive: items.length ? Math.max(...items.map((i) => i.updatedAt)) : null,
+      quizzes: qs,
+      quizAvg: qs.length ? qs.reduce((a, q) => a + q.best, 0) / qs.length : null,
     };
   });
 
@@ -151,6 +166,16 @@ export function csvField(v: string | number | null | undefined): string {
   return /[",\n\r]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
 }
 
+/** Quiz columns for the CSV, in this order. */
+export const CSV_QUIZZES: { id: string; label: string }[] = [
+  { id: "1", label: "Quiz U1 best %" },
+  { id: "2", label: "Quiz U2 best %" },
+  { id: "3", label: "Quiz U3 best %" },
+  { id: "4", label: "Quiz U4 best %" },
+  { id: "5", label: "Quiz U5 best %" },
+  { id: "mixed", label: "Quiz mixed best %" },
+];
+
 export function reportCsv(report: ClassReport, lessons: LessonInfo[]): string {
   const units = [...new Set(lessons.map((l) => l.unit))];
   const header = [
@@ -164,6 +189,7 @@ export function reportCsv(report: ClassReport, lessons: LessonInfo[]): string {
     "Predict right",
     "Predict asked",
     "Predict %",
+    ...CSV_QUIZZES.map((q) => q.label),
     "Last active (UTC)",
   ];
   const lines = report.rows.map((r) => [
@@ -177,6 +203,10 @@ export function reportCsv(report: ClassReport, lessons: LessonInfo[]): string {
     r.right,
     r.asked,
     r.asked ? Math.round((r.right / r.asked) * 100) : "",
+    ...CSV_QUIZZES.map((q) => {
+      const b = r.quizzes.find((x) => x.quiz === q.id);
+      return b ? Math.round(b.best * 100) : "";
+    }),
     r.lastActive ? new Date(r.lastActive).toISOString().slice(0, 16).replace("T", " ") : "",
   ]);
   // BOM so Excel reads UTF-8 names correctly.

@@ -77,8 +77,11 @@ check("CSV: header, per-unit counts, formula injection defused", () => {
   const r = buildReport([{ id: "1", name: "=HYPERLINK(\"x\")", email: "a@srmist.edu.in", regNo: "RA1" }], progress, lessons);
   const csv = reportCsv(r, lessons);
   const [head, row] = csv.replace("﻿", "").trim().split("\r\n");
-  assert.equal(head, "Register no,Name,NetID,Email,Lessons done,Lessons total,Unit 1 done,Unit 2 done,Predict right,Predict asked,Predict %,Last active (UTC)");
+  assert.equal(head, "Register no,Name,NetID,Email,Lessons done,Lessons total,Unit 1 done,Unit 2 done,Predict right,Predict asked,Predict %,Quiz U1 best %,Quiz U2 best %,Quiz U3 best %,Quiz U4 best %,Quiz U5 best %,Quiz mixed best %,Last active (UTC)");
   assert.ok(row.startsWith(`RA1,"'=HYPERLINK(""x"")",,a@srmist.edu.in,1,3,1,0,1,2,50,`));
+  const withQuiz = buildReport([{ id: "1", name: "Amy", email: "a@srmist.edu.in" }], progress, lessons, new Map([["1", [{ quiz: "4", attempts: 2, best: 0.75 }]]]));
+  assert.equal(withQuiz.rows[0].quizAvg, 0.75);
+  assert.ok(reportCsv(withQuiz, lessons).includes(",,,,75,,"));
   assert.equal(csvField("-5"), "'-5");
   assert.equal(csvField(-5), "'-5");
   assert.equal(csvField("a,b"), '"a,b"');

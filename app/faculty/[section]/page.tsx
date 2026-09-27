@@ -5,6 +5,7 @@ import { AccountShell, Panel } from "@/components/account/AccountShell";
 import { Icon } from "@/components/ui/Icon";
 import { buildReport, parseSectionSlug, sectionLabel, sectionSlug } from "@/lib/classReport";
 import { LESSON_COLUMNS, progressFor, requireFaculty, studentsIn, teaches } from "@/lib/faculty";
+import { summaries } from "@/lib/quiz/store";
 
 export const metadata: Metadata = { title: "Section — CN_Visualizer" };
 
@@ -41,8 +42,9 @@ export default async function SectionPage({ params }: { params: Promise<{ sectio
   if (!(await teaches(user._id.toHexString(), s))) notFound();
 
   const students = await studentsIn(s);
-  const progress = await progressFor(students.map((st) => st.id));
-  const report = buildReport(students, progress, LESSON_COLUMNS);
+  const ids = students.map((st) => st.id);
+  const [progress, quizzes] = await Promise.all([progressFor(ids), summaries(ids)]);
+  const report = buildReport(students, progress, LESSON_COLUMNS, quizzes);
   const t = report.rows.reduce((a, r) => ({ asked: a.asked + r.asked, right: a.right + r.right }), { asked: 0, right: 0 });
   const units = [...new Set(LESSON_COLUMNS.map((l) => l.unit))].map((u) => ({
     unit: u,
@@ -94,7 +96,7 @@ export default async function SectionPage({ params }: { params: Promise<{ sectio
               <thead>
                 <tr>
                   <th className="sticky left-0 z-10 bg-surface-container-low" />
-                  <th colSpan={3} />
+                  <th colSpan={4} />
                   {units.map((u) => (
                     <th
                       key={u.unit}
@@ -111,6 +113,7 @@ export default async function SectionPage({ params }: { params: Promise<{ sectio
                   <th className="sticky left-0 z-10 bg-surface-container-low py-1 pr-3">Student</th>
                   <th className="px-2">Done</th>
                   <th className="px-2">Predict</th>
+                  <th className="px-2" title="Average of each practice quiz's best score">Quiz</th>
                   <th className="px-2 pr-3">Active</th>
                   {LESSON_COLUMNS.map((l, i) => (
                     <th key={l.href} className={i === 0 || LESSON_COLUMNS[i - 1].unit !== l.unit ? "border-l border-outline-variant/60 pl-1" : ""} />
@@ -128,6 +131,9 @@ export default async function SectionPage({ params }: { params: Promise<{ sectio
                     </td>
                     <td className="px-2 font-mono">{r.done}</td>
                     <td className="px-2 font-mono">{r.asked ? `${Math.round((r.right / r.asked) * 100)}%` : "—"}</td>
+                    <td className="px-2 font-mono" title={r.quizzes.length ? `${r.quizzes.length} quizzes tried` : "no quizzes yet"}>
+                      {r.quizAvg === null ? "—" : `${Math.round(r.quizAvg * 100)}%`}
+                    </td>
                     <td className="whitespace-nowrap px-2 pr-3 text-[13px] text-on-surface-variant">{ago(r.lastActive)}</td>
                     {r.cells.map((v, i) => {
                       const l = LESSON_COLUMNS[i];

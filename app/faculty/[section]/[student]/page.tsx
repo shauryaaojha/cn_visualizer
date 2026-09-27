@@ -3,6 +3,8 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { AccountShell } from "@/components/account/AccountShell";
 import { ProgressBoard } from "@/components/account/ProgressBoard";
+import { QuizPanel } from "@/components/account/QuizPanel";
+import { summaries } from "@/lib/quiz/store";
 import { parseSectionSlug, sectionLabel } from "@/lib/classReport";
 import { requireFaculty, studentForFaculty } from "@/lib/faculty";
 import { getProgress } from "@/lib/progressStore";
@@ -17,7 +19,8 @@ export default async function StudentPage({ params }: { params: Promise<{ sectio
   // Only students in a section this faculty member teaches.
   const u = await studentForFaculty(me._id.toHexString(), student);
   if (!u) notFound();
-  const progress = await getProgress(u._id.toHexString());
+  const sid = u._id.toHexString();
+  const [progress, quizzes] = await Promise.all([getProgress(sid), summaries([sid])]);
 
   return (
     <AccountShell
@@ -31,6 +34,9 @@ export default async function StudentPage({ params }: { params: Promise<{ sectio
         ← Back to the section
       </Link>
       <ProgressBoard items={progress} viewer="faculty" />
+      <div className="mt-md">
+        <QuizPanel items={quizzes.get(sid) ?? []} viewer="faculty" />
+      </div>
     </AccountShell>
   );
 }
