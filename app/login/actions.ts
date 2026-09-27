@@ -17,7 +17,7 @@ export interface CodeState {
 
 export async function sendCode(_prev: CodeState, form: FormData): Promise<CodeState> {
   const email = srmEmailFromNetId(String(form.get("netId") ?? ""));
-  if (!email) return { error: "Enter your NetID, the part of your SRM email before @srmist.edu.in (e.g. ab1234)." };
+  if (!email) return { error: "Enter the part of your SRM email before @srmist.edu.in: your NetID (ab1234), or your name for faculty (name.x)." };
 
   const issued = await issueCode(email);
   if (!issued.ok) {
@@ -27,7 +27,7 @@ export async function sendCode(_prev: CodeState, form: FormData): Promise<CodeSt
       email: issued.reason === "too-many" ? email : undefined,
       error:
         issued.reason === "too-many"
-          ? "Too many codes for this NetID. Use the last one we sent, or try again in 15 minutes."
+          ? "Too many codes for this address. Use the last one we sent, or try again in 15 minutes."
           : "Lots of people are signing in right now. Try again in a few minutes.",
     };
   }

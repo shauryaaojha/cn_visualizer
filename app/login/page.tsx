@@ -68,7 +68,7 @@ export default async function LoginPage({
             <h2 className="mt-1 font-headline-sm text-headline-sm text-on-surface">Use your SRM account</h2>
             <p className="mt-2 font-body-sm text-body-sm text-on-surface-variant">
               {hasEmailCode
-                ? "We email a one-time code to your SRM mailbox. Typing it here proves the account is yours, with no password needed."
+                ? "Students and faculty: we email a one-time code to your @srmist.edu.in mailbox. Typing it here proves the account is yours, with no password needed."
                 : "Your SRM Google login. Google confirms the account belongs to SRM, and your password never reaches this site."}
             </p>
             {hasEmailCode && (

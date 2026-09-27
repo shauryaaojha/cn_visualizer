@@ -67,7 +67,7 @@ export function SrmCodeForm({ next }: { next: string }) {
         </form>
         <div className="flex flex-wrap items-center justify-between gap-2 font-sans text-[14px]">
           <button type="button" onClick={() => setDismissed(sent)} className="font-bold text-on-surface-variant hover:text-primary">
-            ← Different NetID
+            ← Different email
           </button>
           <form action={send}>
             <input type="hidden" name="netId" value={sent.email} />
@@ -83,13 +83,13 @@ export function SrmCodeForm({ next }: { next: string }) {
   return (
     <form action={send} className="flex flex-col gap-3">
       <label className="flex flex-col gap-1">
-        <span className="font-label-caps text-[12px] uppercase tracking-[0.08em] text-on-surface-variant">NetID</span>
+        <span className="font-label-caps text-[12px] uppercase tracking-[0.08em] text-on-surface-variant">SRM email</span>
         <div className="flex items-stretch overflow-hidden rounded-md border border-outline-variant bg-black/20 focus-within:border-primary">
           <input
             name="netId"
             required
             defaultValue={sent.email?.split("@")[0]}
-            placeholder="ab1234"
+            placeholder="ab1234 or name.x"
             autoComplete="username"
             autoCapitalize="none"
             spellCheck={false}

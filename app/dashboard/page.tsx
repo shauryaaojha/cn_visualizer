@@ -59,7 +59,8 @@ export default async function DashboardPage() {
           </div>
           <dl className="mt-md grid gap-md sm:grid-cols-2">
             <Fact label="Email" value={user.email} />
-            <Fact label="NetID" value={user.netId} />
+            {/* Faculty addresses are names, not NetIDs. */}
+            {user.role !== "faculty" && <Fact label="NetID" value={user.netId} />}
             <Fact label="Register no." value={p.regNo} />
             <Fact label="Department" value={p.dept} />
             <Fact label="Year · Section" value={p.year ? `${p.year} · ${p.section}` : undefined} />
