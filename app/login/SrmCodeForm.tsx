@@ -38,7 +38,14 @@ export function SrmCodeForm({ next }: { next: string }) {
       <div className="flex flex-col gap-3">
         <p className="font-body-sm text-[14px] text-on-surface-variant">
           We emailed a 6-digit code to <span className="break-all font-mono text-on-surface">{sent.email}</span>. It
-          can take a minute, and may land in spam.
+          can take a minute.
+        </p>
+        <p className="flex items-start gap-2 rounded-lg border border-amber/50 bg-amber/10 px-3 py-2 font-body-sm text-[13px] text-amber">
+          <Icon name="warning" className="mt-0.5 shrink-0 text-[16px]" />
+          <span>
+            Not in your inbox? Check <strong>Spam</strong> and mark it <strong>Not spam</strong>, so the next code
+            lands in your inbox.
+          </span>
         </p>
         <form action={check} className="flex flex-col gap-3">
           <input type="hidden" name="email" value={sent.email} />
