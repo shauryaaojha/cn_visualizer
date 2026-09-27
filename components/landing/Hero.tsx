@@ -23,17 +23,32 @@ import { Icon } from "@/components/ui/Icon";
 
 const EASE_OUT = [0.23, 1, 0.32, 1] as const;
 
+/** The visitor's own progress. When present, the meter and main button are about them, not the build. */
+export interface HeroPersonal {
+  done: number;
+  /** Lessons built so far: what can be done today. */
+  total: number;
+  next?: { href: string; title: string };
+  firstName?: string;
+  /** "local" = saved in this browser only, not signed in. */
+  source: "account" | "local";
+}
+
 interface HeroProps {
   built: number;
   total: number;
+  personal?: HeroPersonal;
 }
 
-export function Hero({ built, total }: HeroProps) {
+export function Hero({ built, total, personal }: HeroProps) {
   const reduce = useReducedMotion();
   const d = (s: number) => (reduce ? 0 : s);
   const title = "CN_Visualizer";
   const claims = ["Packets move.", "Algorithms step.", "Networks break."];
-  const fill = total ? built / total : 0;
+  const meter = personal
+    ? { value: personal.done, max: personal.total, label: "lessons done", aria: "Your lessons done" }
+    : { value: built, max: total, label: "visualizers built", aria: "Visualizers built" };
+  const fill = meter.max ? meter.value / meter.max : 0;
 
   return (
     <section className="relative isolate flex min-h-[calc(100dvh-64px)] flex-col justify-end overflow-hidden">
@@ -101,10 +116,10 @@ export function Hero({ built, total }: HeroProps) {
               transition={{ duration: d(0.5), delay: d(0.85), ease: EASE_OUT }}
             >
               <Link
-                href="/topics/fundamentals"
+                href={personal?.next?.href ?? "/topics/fundamentals"}
                 className="group flex items-center gap-2 rounded-md bg-primary px-5 py-3 font-sans text-[16px] font-bold text-surface transition-[transform,background-color] duration-200 hover:bg-primary-fixed active:scale-[0.97]"
               >
-                Start Unit 1
+                {personal?.next && personal.done > 0 ? `Continue: ${personal.next.title}` : "Start Unit 1"}
                 <Icon name="east" className="text-[18px] transition-transform duration-200 group-hover:translate-x-0.5" />
               </Link>
               <a
@@ -123,15 +138,32 @@ export function Hero({ built, total }: HeroProps) {
             transition={{ duration: d(0.6), delay: d(0.7) }}
           >
             <p className="mb-4 font-body-md text-body-md text-on-surface-variant">
-              Every topic in the syllabus compiled into frames you can play, pause, scrub — and break on purpose.
+              {personal ? (
+                <>
+                  {personal.firstName ? `Welcome back, ${personal.firstName}. ` : ""}
+                  {personal.source === "account" ? (
+                    "Here's how far you've got through everything built so far."
+                  ) : (
+                    <>
+                      Your progress, saved in this browser only.{" "}
+                      <Link href="/login" className="text-primary underline">
+                        Sign in
+                      </Link>{" "}
+                      to keep it and see it on any device.
+                    </>
+                  )}
+                </>
+              ) : (
+                "Every topic in the syllabus compiled into frames you can play, pause, scrub — and break on purpose."
+              )}
             </p>
             {/* The demo's preloader capsule, now an honest progress meter. */}
             <div
               role="meter"
-              aria-label="Visualizers built"
+              aria-label={meter.aria}
               aria-valuemin={0}
-              aria-valuemax={total}
-              aria-valuenow={built}
+              aria-valuemax={meter.max}
+              aria-valuenow={meter.value}
               className="relative h-12 overflow-hidden rounded-full bg-surface-container-high"
             >
               <motion.div
@@ -142,7 +174,7 @@ export function Hero({ built, total }: HeroProps) {
               />
               {/* Two copies of the label: chalk on the board, board-green on
                   the fill, the second clipped to exactly the filled width. */}
-              <MeterLabel built={built} total={total} className="text-on-surface" />
+              <MeterLabel value={meter.value} max={meter.max} label={meter.label} className="text-on-surface" />
               <motion.div
                 aria-hidden
                 className="absolute inset-0"
@@ -154,7 +186,7 @@ export function Hero({ built, total }: HeroProps) {
                 }}
                 transition={{ duration: d(1.6), delay: d(0.9), times: [0, 0.3, 0.65, 1], ease: EASE_OUT }}
               >
-                <MeterLabel built={built} total={total} className="text-surface" />
+                <MeterLabel value={meter.value} max={meter.max} label={meter.label} className="text-surface" />
               </motion.div>
             </div>
           </motion.div>
@@ -164,15 +196,15 @@ export function Hero({ built, total }: HeroProps) {
   );
 }
 
-function MeterLabel({ built, total, className }: { built: number; total: number; className: string }) {
+function MeterLabel({ value, max, label, className }: { value: number; max: number; label: string; className: string }) {
   return (
     <span
       className={`absolute inset-0 flex items-center justify-between px-5 font-mono text-[14px] font-semibold ${className}`}
     >
       <span>
-        {built} / {total}
+        {value} / {max}
       </span>
-      <span>visualizers built</span>
+      <span>{label}</span>
     </span>
   );
 }

@@ -17,7 +17,7 @@ import Link from "next/link";
 import { useRef } from "react";
 import { BoardBackground } from "@/components/layout/BoardBackground";
 import { Navbar } from "@/components/layout/Navbar";
-import { Hero } from "@/components/landing/Hero";
+import { Hero, type HeroPersonal } from "@/components/landing/Hero";
 import { OsiStack } from "@/components/landing/OsiStack";
 import { CarveAddress, CARVE_STEPS } from "@/components/landing/showcase/CarveAddress";
 import { CatchError, ERROR_STEPS } from "@/components/landing/showcase/CatchError";
@@ -27,6 +27,7 @@ import { HANDSHAKE_STEPS, ShakeHands } from "@/components/landing/showcase/Shake
 import { VisualizerStrip } from "@/components/landing/VisualizerStrip";
 import { Icon } from "@/components/ui/Icon";
 import { SECTIONS, leavesOfSection } from "@/data/curriculum";
+import { useMyProgress } from "@/lib/useMyProgress";
 
 const UNITS = SECTIONS.map((s) => {
   const leaves = leavesOfSection(s.slug);
@@ -47,6 +48,21 @@ const TOTAL = UNITS.reduce((n, u) => n + u.total, 0);
 
 export function Landing() {
   const scroller = useRef<HTMLDivElement | null>(null);
+  // The build numbers are prerendered; the visitor's own numbers replace them once loaded.
+  const mine = useMyProgress();
+  const byLesson = new Map((mine?.items ?? []).map((p) => [p.lesson, p]));
+  const isDone = (href: string) => !!byLesson.get(href)?.completed;
+  const recent = mine?.items.filter((p) => !p.completed && BUILT.some((l) => l.href === p.lesson)).sort((a, b) => b.updatedAt - a.updatedAt)[0];
+  const next = BUILT.find((l) => l.href === recent?.lesson) ?? BUILT.find((l) => !isDone(l.href));
+  const personal: HeroPersonal | undefined = mine
+    ? {
+        done: BUILT.filter((l) => isDone(l.href)).length,
+        total: BUILT.length,
+        next: next && { href: next.href, title: next.title },
+        firstName: mine.name?.split(" ")[0],
+        source: mine.source,
+      }
+    : undefined;
 
   return (
     <div className="relative flex h-[100dvh] flex-col overflow-hidden">
@@ -54,7 +70,7 @@ export function Landing() {
       <Navbar />
 
       <div ref={scroller} className="scroll-thin mt-16 flex-1 overflow-y-auto scroll-smooth">
-        <Hero built={BUILT.length} total={TOTAL} />
+        <Hero built={BUILT.length} total={TOTAL} personal={personal} />
 
         {/* 2 — units */}
         <section aria-labelledby="units" className="mx-auto w-full max-w-6xl px-margin py-24">
@@ -66,14 +82,21 @@ export function Landing() {
               </h2>
             </div>
             <p className="max-w-sm font-body-md text-body-md text-on-surface-variant">
-              Unit 1 is complete. The rest are mapped topic by topic, so you can see exactly what is coming.
+              {personal
+                ? "Your progress in each unit: lessons you've finished out of the lessons built so far."
+                : "Unit 1 is complete. The rest are mapped topic by topic, so you can see exactly what is coming."}
             </p>
           </div>
 
           <ol className="border-t border-outline-variant">
             {UNITS.map((u) => {
-              const pct = u.total ? Math.round((u.ready / u.total) * 100) : 0;
-              const done = u.ready === u.total && u.total > 0;
+              // Personal: finished / built. Otherwise: built / planned.
+              const built = BUILT.filter((l) => l.section === u.slug);
+              const num = personal ? built.filter((l) => isDone(l.href)).length : u.ready;
+              const den = personal ? built.length : u.total;
+              const started = personal ? built.filter((l) => !isDone(l.href) && (byLesson.get(l.href)?.best ?? 0) > 0).length : 0;
+              const pct = den ? Math.round((num / den) * 100) : 0;
+              const done = num === den && den > 0;
               return (
                 <li key={u.slug} className="border-b border-outline-variant">
                   <Link
@@ -92,6 +115,7 @@ export function Landing() {
                     />
                     <span className="col-span-3 font-body-sm text-body-sm text-on-surface-variant md:col-span-1">
                       {u.blurb}
+                      {started > 0 && <span className="mt-0.5 block font-mono text-[12px] text-primary">{started} in progress</span>}
                     </span>
                     <span className="col-span-3 flex items-center gap-3 md:col-span-1">
                       <span className="h-1.5 flex-1 overflow-hidden rounded-full bg-surface-container-high">
@@ -100,8 +124,11 @@ export function Landing() {
                           style={{ width: `${pct}%` }}
                         />
                       </span>
-                      <span className="w-14 text-right font-mono text-[13px] text-on-surface-variant">
-                        {u.ready}/{u.total}
+                      <span
+                        className="w-14 text-right font-mono text-[13px] text-on-surface-variant"
+                        title={personal ? `${num} finished, ${started} in progress, of ${den} built` : `${num} built of ${den} planned`}
+                      >
+                        {num}/{den}
                       </span>
                     </span>
                   </Link>

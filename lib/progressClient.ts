@@ -139,3 +139,8 @@ export function flush() {
     navigator.sendBeacon("/api/progress", JSON.stringify({ items }));
   });
 }
+
+/** Every lesson this browser knows about: its own progress plus, once synced, the account's. */
+export function allProgress(): LessonProgress[] {
+  return Object.values(load().entries);
+}
