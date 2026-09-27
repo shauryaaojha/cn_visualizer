@@ -1,6 +1,7 @@
 "use server";
 
 import { ObjectId } from "mongodb";
+import { recordActivity } from "@/lib/activity";
 import { buildQuiz } from "@/lib/quiz/generators";
 import { saveResult } from "@/lib/quiz/store";
 import { readTicket } from "@/lib/quiz/ticket";
@@ -55,6 +56,7 @@ export async function submitQuiz(rawTicket: string, chosen: number[]): Promise<G
       answers: picks,
       at: new Date(),
     });
+    if (saved) await recordActivity(who);
   }
   return { score, total: questions.length, saved, items };
 }

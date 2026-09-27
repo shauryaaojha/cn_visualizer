@@ -5,7 +5,9 @@ import { signOut } from "@/auth";
 import { AccountShell, Panel } from "@/components/account/AccountShell";
 import { Icon } from "@/components/ui/Icon";
 import { ProgressBoard } from "@/components/account/ProgressBoard";
+import { AssignedPanel, StreakAndBadges } from "@/components/account/EngagementPanels";
 import { QuizPanel } from "@/components/account/QuizPanel";
+import { loadEngagement } from "@/lib/studentEngagement";
 import { summaries } from "@/lib/quiz/store";
 import { SyncOnView } from "@/components/account/SyncOnView";
 import { isFaculty } from "@/lib/faculty";
@@ -30,6 +32,8 @@ export default async function DashboardPage() {
   const p = user.profile;
   const uid = user._id.toHexString();
   const [progress, quizzes] = await Promise.all([getProgress(uid), summaries([uid])]);
+  const myQuizzes = quizzes.get(uid) ?? [];
+  const engagement = await loadEngagement(user, progress, myQuizzes);
 
   async function leave() {
     "use server";
@@ -45,9 +49,15 @@ export default async function DashboardPage() {
       width="max-w-6xl"
     >
       <SyncOnView />
+      {engagement.assignments.length > 0 && (
+        <div className="mb-md">
+          <AssignedPanel items={engagement.assignments} />
+        </div>
+      )}
       <ProgressBoard items={progress} />
-      <div className="mt-md">
-        <QuizPanel items={quizzes.get(uid) ?? []} />
+      <div className="mt-md grid gap-md">
+        <StreakAndBadges e={engagement} />
+        <QuizPanel items={myQuizzes} />
       </div>
 
       <div className="mt-md grid gap-md md:grid-cols-[1fr_16rem]">

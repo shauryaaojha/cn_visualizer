@@ -9,6 +9,19 @@ export interface Me {
 }
 
 let pending: Promise<Me | null> | null = null;
+let askedFor: string | null = null;
+
+/**
+ * Asks again when the page changes. Signing in or out ends in an in-app
+ * navigation, not a page load, so a cached answer from before would be stale.
+ */
+export function getMeFor(pathname: string): Promise<Me | null> {
+  if (askedFor !== pathname) {
+    askedFor = pathname;
+    pending = null;
+  }
+  return getMe();
+}
 
 export function getMe(): Promise<Me | null> {
   pending ??= fetch("/api/auth/session")

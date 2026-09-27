@@ -70,3 +70,14 @@ export async function summaries(userIds: string[]): Promise<Map<string, QuizSumm
   for (const [uid, m] of acc) out.set(uid, [...m.values()]);
   return out;
 }
+
+/** Every saved attempt (quiz and time only) for each user, for assignment status. */
+export async function attemptsFor(userIds: string[]): Promise<Map<string, { quiz: string; at: number }[]>> {
+  const out = new Map<string, { quiz: string; at: number }[]>(userIds.map((id) => [id, []]));
+  if (userIds.length === 0) return out;
+  const docs = await (await col())
+    .find({ userId: { $in: userIds.map((i) => new ObjectId(i)) } }, { projection: { userId: 1, quiz: 1, at: 1 } })
+    .toArray();
+  for (const d of docs) out.get(d.userId.toHexString())?.push({ quiz: d.quiz, at: d.at.getTime() });
+  return out;
+}

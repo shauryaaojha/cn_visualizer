@@ -8,7 +8,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { Icon } from "@/components/ui/Icon";
-import { getMe, type Me } from "@/lib/sessionClient";
+import { getMeFor, type Me } from "@/lib/sessionClient";
 
 export function UserMenu() {
   const pathname = usePathname();
@@ -16,11 +16,11 @@ export function UserMenu() {
 
   useEffect(() => {
     let live = true;
-    void getMe().then((m) => live && setMe(m));
+    void getMeFor(pathname).then((m) => live && setMe(m));
     return () => {
       live = false;
     };
-  }, []);
+  }, [pathname]);
 
   if (me === undefined) return <span className="h-9 w-9" aria-hidden />;
 

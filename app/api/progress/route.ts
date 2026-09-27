@@ -1,6 +1,7 @@
 import { auth } from "@/auth";
 import { MAX_ITEMS_PER_SYNC, sanitize, type LessonProgress } from "@/lib/progressModel";
 import { getProgress, LESSONS, saveProgress } from "@/lib/progressStore";
+import { recordActivity } from "@/lib/activity";
 import { getUser } from "@/lib/users";
 
 // GET  → the signed-in user's progress on every lesson.
@@ -48,5 +49,8 @@ export async function POST(req: Request) {
     .map((r) => sanitize(r, (p) => LESSONS.has(p), now))
     .filter((x): x is LessonProgress => x !== null);
 
-  return Response.json({ items: await saveProgress(uid, items) });
+  const saved = await saveProgress(uid, items);
+  // Streaks: any real change today counts as a day of study.
+  if (saved.length) await recordActivity(uid);
+  return Response.json({ items: saved });
 }

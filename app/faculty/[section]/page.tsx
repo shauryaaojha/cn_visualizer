@@ -5,7 +5,11 @@ import { AccountShell, Panel } from "@/components/account/AccountShell";
 import { Icon } from "@/components/ui/Icon";
 import { buildReport, parseSectionSlug, sectionLabel, sectionSlug } from "@/lib/classReport";
 import { LESSON_COLUMNS, progressFor, requireFaculty, studentsIn, teaches } from "@/lib/faculty";
-import { summaries } from "@/lib/quiz/store";
+import { assignmentsFor } from "@/lib/assignmentStore";
+import { nowMs, tallyAssignment, todayKey } from "@/lib/engagement";
+import { QUIZ_IDS, quizTitle } from "@/lib/quiz/generators";
+import { attemptsFor, summaries } from "@/lib/quiz/store";
+import { AssignmentsPanel } from "./AssignmentsPanel";
 
 export const metadata: Metadata = { title: "Section — CN_Visualizer" };
 
@@ -43,8 +47,10 @@ export default async function SectionPage({ params }: { params: Promise<{ sectio
 
   const students = await studentsIn(s);
   const ids = students.map((st) => st.id);
-  const [progress, quizzes] = await Promise.all([progressFor(ids), summaries(ids)]);
+  const [progress, quizzes, attempts, assignments] = await Promise.all([progressFor(ids), summaries(ids), attemptsFor(ids), assignmentsFor(s)]);
   const report = buildReport(students, progress, LESSON_COLUMNS, quizzes);
+  const tallied = assignments.map((a) => ({ a, t: tallyAssignment(a, students, progress, attempts) }));
+  const now = nowMs();
   const t = report.rows.reduce((a, r) => ({ asked: a.asked + r.asked, right: a.right + r.right }), { asked: 0, right: 0 });
   const units = [...new Set(LESSON_COLUMNS.map((l) => l.unit))].map((u) => ({
     unit: u,
@@ -76,6 +82,17 @@ export default async function SectionPage({ params }: { params: Promise<{ sectio
           sub={t.asked ? `${t.right} right of ${t.asked} first tries` : "no answers yet"}
         />
       </div>
+
+      <AssignmentsPanel
+        slug={sectionSlug(s)}
+        items={tallied}
+        total={students.length}
+        myId={user._id.toHexString()}
+        lessons={LESSON_COLUMNS}
+        quizzes={QUIZ_IDS.map((id) => ({ id, title: quizTitle(id) }))}
+        minDate={todayKey()}
+        now={now}
+      />
 
       <Panel className="mt-md">
         <div className="mb-3 flex flex-wrap items-center gap-x-md gap-y-1 font-body-sm text-[13px] text-on-surface-variant">
